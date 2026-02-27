@@ -1,0 +1,107 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f5f6fa;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f5f6fa;
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px 30px;
+    background: #fff;
+    border-radius: 0;
+}
+
+.page-content {
+    background: #fff;
+    border-radius: 14px;
+    padding: 30px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    margin: 30px;
+}
+
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.filter-form {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.filter-form input, .filter-form button {
+    padding: 8px 12px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+.filter-form button {
+    background-color: #3498db;
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.filter-form button:hover {
+    background-color: #2980b9;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+thead {
+    background-color: #3498db;
+    color: white;
+}
+
+th, td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.no-data {
+    text-align: center;
+    color: #888;
+}
+
+.total {
+    text-align: right;
+    font-size: 18px;
+    color: #2c3e50;
+    margin-top: 10px;
+}
+
+.opsi-tampilan {
+    text-align: center;
+    margin-top: 25px;
+}
+
+.opsi-tampilan a {
+    text-decoration: none;
+    color: white;
+    background-color: #2ecc71;
+    padding: 10px 15px;
+    margin: 5px;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+
+.opsi-tampilan a:hover {
+    background-color: #27ae60;
+}

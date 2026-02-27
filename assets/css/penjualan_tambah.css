@@ -1,0 +1,201 @@
+/* penjualan_tambah.css — versi proporsional & profesional */
+* {
+  box-sizing: border-box;
+  font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+body {
+  background: #f3f4f6;
+  margin: 0;
+  color: #111827;
+}
+
+.container {
+  max-width: 1050px;
+  margin: 30px auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.06);
+}
+
+h2 {
+  margin: 0 0 16px 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  border-bottom: 2px solid #f3f4f6;
+  padding-bottom: 8px;
+}
+
+.trx-header {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.status {
+  padding: 4px 10px;
+  background: #e0e7ff;
+  border-radius: 6px;
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+/* ===== FORM TAMBAH ITEM ===== */
+.tambah-item {
+  background: #f9fafb;
+  padding: 18px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+}
+
+.form-inline {
+  display: grid;
+  grid-template-columns:
+    1.7fr   /* Barang */
+    1.1fr   /* Varian */
+    0.5fr   /* Qty */
+    0.9fr   /* Harga */
+    0.9fr   /* Subtotal */
+    0.45fr; /* Tombol Tambah */
+  gap: 12px;
+  align-items: end;
+}
+
+.form-inline label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: #374151;
+}
+
+.form-inline input,
+.form-inline select {
+  padding: 9px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.form-inline input:focus,
+.form-inline select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.btn-add {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  height: 39px;
+}
+
+.btn-add:hover {
+  background: #1e40af;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== TABEL ITEM ===== */
+.list-item {
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tbl thead th {
+  background: #f3f4f6;
+  padding: 10px 8px;
+  text-align: left;
+  color: #374151;
+  font-weight: 600;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.tbl tbody td {
+  padding: 8px 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.tbl tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.tbl tbody tr:hover {
+  background: #eef2ff;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+  padding: 14px 16px;
+  border-top: 2px solid #e5e7eb;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.btn-light {
+  background: #e5e7eb;
+  color: #111827;
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+
+/* Hover efek tombol bawah */
+.btn-primary:hover {
+  background: #15803d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
+}
+
+.btn-light:hover {
+  background: #d1d5db;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+}
+
+@media (max-width: 950px) {
+  .form-inline {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -1,0 +1,13 @@
+.DS_Store
+*.log
+/tmp/
+.vscode/
+.idea/
+.gemini/
+.agents/
+.agent/
+_agents/
+_agent/
+error_log.php
+database/labora.sql.bak
+/assets/img/user.png.bak

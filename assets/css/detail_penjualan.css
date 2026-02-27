@@ -1,0 +1,160 @@
+/* ===========================================
+   DETAIL PENJUALAN - LABORA STYLE
+   =========================================== */
+
+body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background-color: #f9fafb;
+  color: #111827;
+  margin: 0;
+  padding: 0;
+}
+
+/* Container utama */
+.container {
+  max-width: 900px;
+  margin: 50px auto;
+  background: #fff;
+  padding: 35px 40px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* Judul halaman */
+h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+/* Info transaksi */
+.info-section {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 15px 20px;
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.info-section strong {
+  color: #111827;
+}
+
+/* Tabel */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  margin-top: 5px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+thead {
+  background-color: #2563eb;
+  color: #fff;
+}
+
+th, td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+th {
+  font-weight: 600;
+}
+
+tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+/* 👉 Tambahin ini DI LUAR MEDIA QUERY */
+tbody td {
+  text-transform: capitalize;
+}
+
+/* Ringkasan total & laba */
+.summary {
+  margin-top: 25px;
+  background: #f3f4f6;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.summary p {
+  margin: 5px 0;
+  font-weight: 500;
+}
+
+.summary strong {
+  color: #2563eb;
+}
+
+/* Tombol navigasi bawah */
+.actions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.back-link,
+.print-link {
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 10px 18px;
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.back-link {
+  background: #2563eb;
+  color: #fff;
+}
+
+.back-link:hover {
+  background: #1e40af;
+}
+
+.print-link {
+  background: #f3f4f6;
+  color: #2563eb;
+  border: 1px solid #2563eb;
+}
+
+.print-link:hover {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* Responsif */
+@media (max-width: 768px) {
+  .container {
+    margin: 25px;
+    padding: 25px;
+  }
+
+  table, th, td {
+    font-size: 0.85rem;
+  }
+
+  .summary {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

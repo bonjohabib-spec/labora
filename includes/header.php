@@ -1,4 +1,3 @@
-<!-- header.php -->
 <header class="header">
   <div class="user-info">
     <span><?= htmlspecialchars($_SESSION['username']) ?></span>

@@ -4,30 +4,60 @@ include __DIR__ . '/../includes/riwayatstok.php';
 if (session_status() == PHP_SESSION_NONE) session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (empty($_POST['id_penjualan']) || empty($_POST['pelanggan'])) {
+    if (empty($_POST['id_penjualan'])) {
         die("Data transaksi tidak lengkap!");
     }
 
     $id_penjualan = intval($_POST['id_penjualan']);
-    $pelanggan    = trim($_POST['pelanggan']);
+    $pelanggan    = trim($_POST['pelanggan'] ?: '-');
 
-    // 🔒 Gunakan prepared statement biar aman dari SQL injection
-    $update = $conn->prepare("
-        UPDATE penjualan 
-        SET status = 'selesai', pelanggan = ? 
-        WHERE id_penjualan = ?
-    ");
-    $update->bind_param("si", $pelanggan, $id_penjualan);
+    $conn->begin_transaction();
 
-    if ($update->execute()) {
-        // ✅ Bisa tambahkan log stok/aktivitas jika diperlukan
-        // contoh: catat ke riwayatstok kalau kamu ingin
-        // recordEvent('penjualan', "Transaksi #$id_penjualan diselesaikan untuk $pelanggan");
+    try {
+        // 1. Ambil semua item dari detail_penjualan untuk transaksi ini
+        $qDetail = $conn->prepare("
+            SELECT d.id_varian, d.id_barang, d.qty, v.warna, v.ukuran, b.nama_barang 
+            FROM detail_penjualan d
+            JOIN barang_varian v ON d.id_varian = v.id_varian
+            JOIN barang b ON v.id_barang = b.id_barang
+            WHERE d.id_penjualan = ?
+        ");
+        $qDetail->bind_param("i", $id_penjualan);
+        $qDetail->execute();
+        $resDetail = $qDetail->get_result();
 
+        // 2. Loop untuk kurangi stok dan catat riwayat
+        while ($item = $resDetail->fetch_assoc()) {
+            $id_v = $item['id_varian'];
+            $id_b = $item['id_barang'];
+            $qty  = $item['qty'];
+            
+            // Kurangi Stok
+            $updStok = $conn->prepare("UPDATE barang_varian SET stok = stok - ? WHERE id_varian = ?");
+            $updStok->bind_param("ii", $qty, $id_v);
+            $updStok->execute();
+
+            // Catat Riwayat
+            $ket = "Penjualan #$id_penjualan: {$item['nama_barang']} ({$item['warna']} - {$item['ukuran']})";
+            catat_riwayat_stok($conn, $id_b, $id_v, $qty, 'pengurangan', $ket);
+        }
+
+        // 3. Update status transaksi jadi selesai
+        $update = $conn->prepare("
+            UPDATE penjualan 
+            SET status = 'selesai', pelanggan = ? 
+            WHERE id_penjualan = ?
+        ");
+        $update->bind_param("si", $pelanggan, $id_penjualan);
+        $update->execute();
+
+        $conn->commit();
         header("Location: penjualan.php");
         exit;
-    } else {
-        die("Gagal menyelesaikan transaksi: " . $conn->error);
+
+    } catch (Exception $e) {
+        $conn->rollback();
+        die("Gagal menyelesaikan transaksi: " . $e->getMessage());
     }
 } else {
     die("Akses tidak sah!");

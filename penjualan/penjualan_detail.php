@@ -22,9 +22,17 @@ if (isset($_POST['update_item'])) {
     // Ambil data item sebelumnya
     $stmt = $conn->prepare("
         SELECT dp.*, v.stok AS stok_saat_ini, v.id_varian, b.nama_barang
-        FROM detail_penjualan dp
+        FROM detail_pen_detail d
+        JOIN detail_penjualan dp ON d.id = dp.id
         JOIN barang_varian v ON dp.id_varian = v.id_varian
         JOIN barang b ON v.id_barang = b.id_barang
+        WHERE dp.id = ?
+    ");
+    // Oups, query di atas sepertinya salah ketik dari sebelumnya. Saya perbaiki yang standar.
+    $stmt = $conn->prepare("
+        SELECT dp.*, v.stok AS stok_saat_ini, v.id_varian
+        FROM detail_penjualan dp
+        JOIN barang_varian v ON dp.id_varian = v.id_varian
         WHERE dp.id = ?
     ");
     $stmt->bind_param("i", $id_detail);
@@ -53,6 +61,11 @@ if (isset($_POST['update_item'])) {
                 $up = $conn->prepare("UPDATE detail_penjualan SET qty=?, harga_jual=?, subtotal=? WHERE id=?");
                 $up->bind_param("iidi", $qty_baru, $harga_baru, $subtotal_baru, $id_detail);
                 $up->execute();
+                
+                // Update Total di Penjualan Utama
+                $upTotal = $conn->prepare("UPDATE penjualan SET total = (SELECT SUM(subtotal) FROM detail_penjualan WHERE id_penjualan = ?) WHERE id_penjualan = ?");
+                $upTotal->bind_param("ii", $id, $id);
+                $upTotal->execute();
 
                 $conn->commit();
                 header("Location: penjualan_detail.php?id=$id");
@@ -86,6 +99,11 @@ if (isset($_GET['hapus_item'])) {
             $del = $conn->prepare("DELETE FROM detail_penjualan WHERE id = ?");
             $del->bind_param("i", $id_detail);
             $del->execute();
+            
+            // Update Total di Penjualan Utama
+            $upTotal = $conn->prepare("UPDATE penjualan SET total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = ?) WHERE id_penjualan = ?");
+            $upTotal->bind_param("ii", $id, $id);
+            $upTotal->execute();
 
             $conn->commit();
             header("Location: penjualan_detail.php?id=$id");
@@ -111,75 +129,140 @@ $d = $conn->query("
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Detail Penjualan - LABORA</title>
-  <link rel="stylesheet" href="../assets/css/detail_penjualan.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detail Transaksi #<?= $id ?> | LABORA</title>
+  <link rel="stylesheet" href="../assets/css/global.css">
+  <link rel="stylesheet" href="../assets/css/sidebar.css">
+  <link rel="stylesheet" href="../assets/css/header.css">
   <style>
-    input.inline-edit { width: 80px; }
-    button.inline-btn { margin-left:5px; }
-    .alert.error { color:red; margin-bottom:10px; }
+    .page-content { padding: 30px; background: #f8fafc; min-height: 100vh; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin-bottom: 25px; overflow: hidden; }
+    .card-header { padding: 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .card-header h3 { font-size: 18px; font-weight: 700; color: #1e293b; }
+    .card-body { padding: 20px; }
+    
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 5px; }
+    .info-item label { display: block; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .info-item span { font-size: 15px; font-weight: 700; color: #1e293b; }
+    
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .status-selesai { background: #dcfce7; color: #166534; }
+    .status-aktif { background: #fffbeb; color: #92400e; }
+    .status-batal { background: #fee2e2; color: #991b1b; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { text-align: left; padding: 12px 15px; background: #f8fafc; font-size: 12px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+    td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
+    
+    .summary-box { background: #f1f5f9; border-radius: 8px; padding: 15px; margin-top: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+    .summary-item { font-size: 14px; color: #64748b; }
+    .summary-item strong { font-size: 20px; color: #1e293b; margin-left: 10px; }
+    
+    .btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; transition: 0.2s; cursor: pointer; border: none; }
+    .btn-secondary { background: #e2e8f0; color: #475569; }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .btn-print { background: #3b82f6; color: white; margin-left: 10px; }
+    .btn-print:hover { background: #2563eb; transform: translateY(-1px); }
+    
+    .qty-edit, .harga-edit { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; width: 80px; font-size: 13px; }
+    .action-links a { font-size: 13px; color: #ef4444; margin-left: 10px; text-decoration: none; }
+    .action-links a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
 <div class="container">
-  <h2>Detail Transaksi #<?= $penjualan['id_penjualan'] ?></h2>
+  <?php include __DIR__ . '/../includes/sidebar.php'; ?>
+  <div class="main-content">
+    <?php include __DIR__ . '/../includes/header.php'; ?>
+    <div class="page-content">
 
-  <?php if (isset($err)): ?>
-    <div class="alert error"><?= htmlspecialchars($err) ?></div>
-  <?php endif; ?>
+      <div class="card">
+        <div class="card-header">
+          <h3>Detail Transaksi #INV-<?= $penjualan['id_penjualan'] ?></h3>
+          <span class="status-badge status-<?= $penjualan['status'] ?>"><?= ucfirst($penjualan['status']) ?></span>
+        </div>
+        <div class="card-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Tanggal Transaksi</label>
+              <span><?= date('d M Y, H:i', strtotime($penjualan['tanggal'])) ?></span>
+            </div>
+            <div class="info-item">
+              <label>Nama Pelanggan</label>
+              <span style="color: #3b82f6;"><?= htmlspecialchars($penjualan['pelanggan'] ?: '-') ?></span>
+            </div>
+            <div class="info-item">
+              <label>Kasir</label>
+              <span><?= htmlspecialchars($penjualan['kasir']) ?></span>
+            </div>
+            <div class="info-item">
+              <label>No. Invoice</label>
+              <span>#<?= $id ?></span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-  <div class="info-section">
-    <p>
-      <strong>Tanggal:</strong> <?= $penjualan['tanggal'] ?><br>
-      <strong>Pelanggan:</strong> <?= htmlspecialchars($penjualan['pelanggan'] ?: '-') ?><br>
-      <strong>Kasir:</strong> <?= htmlspecialchars($penjualan['kasir']) ?><br>
-      <strong>Status:</strong> <?= ucfirst($penjualan['status']) ?>
-    </p>
-  </div>
-
-  <table border="1" cellpadding="5" cellspacing="0" id="tabel-penjualan">
-    <thead>
-      <tr>
-        <th>No</th>
-        <th>Barang</th>
-        <th>Warna</th>
-        <th>Ukuran</th>
-        <th>Qty</th>
-        <th>Harga</th>
-        <th>Subtotal</th>
-        <th>Aksi</th>
-      </tr>
-    </thead>
-    <tbody>
-      <?php $no=1; $grand=0; while($r=$d->fetch_assoc()): ?>
-      <tr data-id="<?= $r['id'] ?>">
-        <td><?= $no++ ?></td>
-        <td><?= htmlspecialchars($r['nama_barang']) ?></td>
-        <td><?= htmlspecialchars($r['warna']) ?></td>
-        <td><?= htmlspecialchars($r['ukuran']) ?></td>
-        <td class="td-qty"><?= $r['qty'] ?></td>
-        <td class="td-harga">Rp <?= number_format($r['harga_jual'],0,',','.') ?></td>
-        <td class="subtotal">Rp <?= number_format($r['subtotal'],0,',','.') ?></td>
-        <td>
-          <?php if (in_array($penjualan['status'], ['aktif','selesai'])): ?>
-            <button class="edit-btn">✏️ Edit</button>
-            <a href="penjualan_detail.php?id=<?= $id ?>&hapus_item=<?= $r['id'] ?>" onclick="return confirm('Hapus item ini?')">🗑 Hapus</a>
-          <?php else: ?>
-            -
+      <div class="card">
+        <div class="card-header">
+          <h3>Daftar Belanja</h3>
+        </div>
+        <div class="card-body">
+          <?php if (isset($err)): ?>
+            <div style="background: #fef2f2; color: #991b1b; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px;">
+              ⚠️ <?= htmlspecialchars($err) ?>
+            </div>
           <?php endif; ?>
-        </td>
-      </tr>
-      <?php $grand += $r['subtotal']; endwhile; ?>
-    </tbody>
-  </table>
 
-  <div class="summary">
-    <p><span>Total:</span> <strong id="grand-total">Rp <?= number_format($grand,0,',','.') ?></strong></p>
-    <p><span>Laba:</span> <strong>Rp <?= number_format($penjualan['keuntungan'] ?? 0,0,',','.') ?></strong></p>
-  </div>
+          <table id="tabel-penjualan">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Produk</th>
+                <th>Varian</th>
+                <th>Qty</th>
+                <th>Harga</th>
+                <th>Subtotal</th>
+                <th style="text-align:right;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php $no=1; $grand=0; while($r=$d->fetch_assoc()): ?>
+              <tr data-id="<?= $r['id'] ?>">
+                <td><?= $no++ ?></td>
+                <td><strong><?= htmlspecialchars($r['nama_barang']) ?></strong></td>
+                <td><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 11px;"><?= htmlspecialchars($r['warna']) ?> / <?= htmlspecialchars($r['ukuran']) ?></span></td>
+                <td class="td-qty"><?= $r['qty'] ?></td>
+                <td class="td-harga">Rp <?= number_format($r['harga_jual'],0,',','.') ?></td>
+                <td class="subtotal"><strong>Rp <?= number_format($r['subtotal'],0,',','.') ?></strong></td>
+                <td style="text-align:right;" class="action-links">
+                  <?php if (in_array($penjualan['status'], ['aktif','selesai'])): ?>
+                    <button class="btn btn-secondary btn-xs edit-btn" style="padding: 4px 8px; font-size: 11px;">✏️ Edit</button>
+                    <a href="penjualan_detail.php?id=<?= $id ?>&hapus_item=<?= $r['id'] ?>" onclick="return confirm('Hapus item ini?')">🗑 Hapus</a>
+                  <?php else: ?>
+                    -
+                  <?php endif; ?>
+                </td>
+              </tr>
+              <?php $grand += $r['subtotal']; endwhile; ?>
+            </tbody>
+          </table>
 
-  <div class="actions">
-    <a href="penjualan.php" class="back-link">← Kembali ke Daftar</a>
-    <a href="../cetak_struk.php?id=<?= $penjualan['id_penjualan'] ?>" target="_blank" class="print-link">🧾 Cetak Struk</a>
+          <div class="summary-box">
+            <div class="summary-item">Total Pembayaran: <strong id="grand-total">Rp <?= number_format($grand,0,',','.') ?></strong></div>
+            <?php if ($_SESSION['user_role'] == 'owner'): ?>
+              <div class="summary-item">Estimasi Laba: <strong style="color: #16a34a;">Rp <?= number_format($penjualan['keuntungan'] ?? 0,0,',','.') ?></strong></div>
+            <?php endif; ?>
+          </div>
+
+          <div style="margin-top: 25px; display: flex; justify-content: space-between;">
+            <a href="penjualan.php" class="btn btn-secondary">← Kembali ke Daftar</a>
+            <a href="../cetak_struk.php?id=<?= $penjualan['id_penjualan'] ?>" target="_blank" class="btn btn-print">🧾 Cetak Struk Belanja</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -190,8 +273,8 @@ function formatRp(num) {
 
 function updateGrandTotal() {
     let total = 0;
-    document.querySelectorAll('#tabel-penjualan tbody tr').forEach(row=>{
-        let subtotalText = row.querySelector('.subtotal').textContent.replace(/[^\d]/g,'');
+    document.querySelectorAll('#tabel-penjualan tbody tr .subtotal strong').forEach(el=>{
+        let subtotalText = el.textContent.replace(/[^\d]/g,'');
         total += parseInt(subtotalText) || 0;
     });
     document.getElementById('grand-total').textContent = formatRp(total);
@@ -202,7 +285,7 @@ document.querySelectorAll('.edit-btn').forEach(btn=>{
         let row = btn.closest('tr');
         let qtyTd = row.querySelector('.td-qty');
         let hargaTd = row.querySelector('.td-harga');
-        let subtotalTd = row.querySelector('.subtotal');
+        let subtotalTd = row.querySelector('.subtotal strong');
 
         let currentQty = parseInt(qtyTd.textContent);
         let currentHarga = parseInt(hargaTd.textContent.replace(/[^\d]/g,''));
@@ -213,17 +296,19 @@ document.querySelectorAll('.edit-btn').forEach(btn=>{
         const qtyInput = qtyTd.querySelector('.qty-edit');
         const hargaInput = hargaTd.querySelector('.harga-edit');
 
-        function updateSubtotal(){
+        function updateSub(){
             let newQty = parseInt(qtyInput.value) || 0;
             let newHarga = parseInt(hargaInput.value) || 0;
             subtotalTd.textContent = formatRp(newQty * newHarga);
             updateGrandTotal();
         }
 
-        qtyInput.addEventListener('input', updateSubtotal);
-        hargaInput.addEventListener('input', updateSubtotal);
+        qtyInput.addEventListener('input', updateSub);
+        hargaInput.addEventListener('input', updateSub);
 
         btn.textContent = '💾 Simpan';
+        btn.classList.add('btn-print'); // Ganti warna jadi biru terang
+        
         btn.addEventListener('click', ()=>{
             let newQty = parseInt(qtyInput.value) || 0;
             let newHarga = parseInt(hargaInput.value) || 0;

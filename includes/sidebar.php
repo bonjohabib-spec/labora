@@ -1,8 +1,7 @@
 <?php
 include __DIR__ . '/config.php'; // ✅ tambahin ini di paling atas
 $currentPage = basename($_SERVER['PHP_SELF']);
-?>
-<div class="sidebar">
+?><div class="sidebar">
   <div class="logo">
     <h2>LABORA</h2>
     <p>Smart POS & Stock Manager</p>

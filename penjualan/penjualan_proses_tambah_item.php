@@ -7,6 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_penjualan = intval($_POST['id_penjualan']);
     $id_varian    = intval($_POST['id_varian']);
     $qty          = intval($_POST['qty']);
+    $pelanggan    = isset($_POST['pelanggan']) ? trim($_POST['pelanggan']) : null;
 
     if ($qty <= 0) {
         die("Jumlah tidak valid!");
@@ -18,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                v.warna, v.ukuran, b.nama_barang
         FROM barang_varian v
         JOIN barang b ON v.id_barang = b.id_barang
-        WHERE v.id_varian = ?
+        WHERE v.id_varian = ? AND v.status = 'aktif'
     ");
     $qVar->bind_param("i", $id_varian);
     $qVar->execute();
@@ -79,29 +80,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql->execute();
         }
 
-        // 🔻 Kurangi stok varian
-        $updStok = $conn->prepare("UPDATE barang_varian SET stok = stok - ? WHERE id_varian = ?");
-        $updStok->bind_param("ii", $qty, $id_varian);
-        $updStok->execute();
-
-        // 🧾 Catat riwayat stok
-        $tipe = 'pengurangan';
-        $ket  = "Penjualan varian '{$varian['nama_barang']}' (Warna: {$warna}, Ukuran: {$ukuran})";
-        $riw = $conn->prepare("
-            INSERT INTO riwayat_stok (id_barang, id_varian, jumlah, tipe, keterangan, tanggal)
-            VALUES (?, ?, ?, ?, ?, NOW())
-        ");
-        $riw->bind_param("iiiss", $id_barang, $id_varian, $qty, $tipe, $ket);
-        $riw->execute();
-
-        // 🔁 Update total penjualan
-        $updateTotal = $conn->prepare("
-            UPDATE penjualan 
-            SET total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = ?)
-            WHERE id_penjualan = ?
-        ");
-        $updateTotal->bind_param("ii", $id_penjualan, $id_penjualan);
-        $updateTotal->execute();
+        // 🔁 Update total penjualan & Pelanggan
+        if ($pelanggan !== null) {
+            $updPel = $conn->prepare("UPDATE penjualan SET pelanggan = ?, total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = ?) WHERE id_penjualan = ?");
+            $updPel->bind_param("sii", $pelanggan, $id_penjualan, $id_penjualan);
+            $updPel->execute();
+        } else {
+            $updateTotal = $conn->prepare("UPDATE penjualan SET total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = ?) WHERE id_penjualan = ?");
+            $updateTotal->bind_param("ii", $id_penjualan, $id_penjualan);
+            $updateTotal->execute();
+        }
 
         $conn->commit();
 

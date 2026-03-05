@@ -30,3 +30,48 @@ td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; colo
 .qty-edit, .harga-edit { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; width: 80px; font-size: 13px; }
 .action-links a { font-size: 13px; color: #ef4444; margin-left: 10px; text-decoration: none; }
 .action-links a:hover { text-decoration: underline; }
+
+/* 📱 RESPONSIVE (MOBILE) */
+@media (max-width: 768px) {
+  .page-content {
+    padding: 15px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+  }
+
+  table {
+    min-width: 600px;
+  }
+
+  .summary-box {
+    align-items: flex-start;
+  }
+
+  .card-body div[style*="display: flex"] {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .btn {
+    width: 100%;
+    text-align: center;
+    margin-left: 0 !important;
+  }
+}

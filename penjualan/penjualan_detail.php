@@ -131,11 +131,10 @@ $d = $conn->query("
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Detail Transaksi #<?= $id ?> | LABORA</title>
-  <link rel="stylesheet" href="../assets/css/global.css">
   <link rel="stylesheet" href="../assets/css/sidebar.css">
   <link rel="stylesheet" href="../assets/css/header.css">
   <link rel="stylesheet" href="../assets/css/detail_penjualan_v2.css?v=<?= time() ?>">
-</head>
+  <link rel="stylesheet" href="../assets/css/global.css?v=<?= time() ?>">
 </head>
 <body>
 <div class="container">
@@ -182,7 +181,8 @@ $d = $conn->query("
             </div>
           <?php endif; ?>
 
-          <table id="tabel-penjualan">
+          <div class="table-responsive">
+            <table id="tabel-penjualan">
             <thead>
               <tr>
                 <th>No</th>
@@ -214,7 +214,8 @@ $d = $conn->query("
               </tr>
               <?php $grand += $r['subtotal']; endwhile; ?>
             </tbody>
-          </table>
+            </table>
+          </div>
 
           <div class="summary-box">
             <div class="summary-item">Total Pembayaran: <strong id="grand-total">Rp <?= number_format($grand,0,',','.') ?></strong></div>

@@ -3,6 +3,12 @@ include __DIR__ . '/../includes/koneksi.php';
 include __DIR__ . '/../includes/riwayatstok.php';
 if (session_status() == PHP_SESSION_NONE) session_start();
 
+// Proteksi role hanya untuk owner
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'owner') {
+    header("Location: ../penjualan/penjualan.php");
+    exit();
+}
+
 if (!isset($_SESSION['username'])) {
     $_SESSION['username'] = 'owner1';
     $_SESSION['user_role'] = 'owner';

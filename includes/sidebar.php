@@ -13,9 +13,11 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </li>
     <?php endif; ?>
 
+    <?php if ($_SESSION['user_role'] == 'owner'): ?>
     <li class="<?= $currentPage == 'stok_barang.php' ? 'active' : '' ?>">
       <a href="<?= $base_url ?>/barang/stok_barang.php">Stok Barang</a>
     </li>
+    <?php endif; ?>
 
     <li class="<?= $currentPage == 'penjualan.php' ? 'active' : '' ?>">
       <a href="<?= $base_url ?>/penjualan/penjualan.php">Penjualan</a>

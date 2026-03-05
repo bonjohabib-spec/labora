@@ -41,3 +41,57 @@ h1, h2, h3 {
 button {
   font-family: inherit;
 }
+
+/* 📱 RESPONSIVE DESIGN (MOBILE FIRST) */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: auto;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  }
+
+  .sidebar .logo {
+    margin-bottom: 20px;
+    text-align: left;
+  }
+
+  .sidebar ul {
+    display: flex;
+    overflow-x: auto;
+    gap: 10px;
+    padding-bottom: 10px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .sidebar ul::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sidebar ul li {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .sidebar ul li a {
+    padding: 8px 15px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .main-content {
+    padding: 15px;
+    overflow-y: visible;
+  }
+
+  .header {
+    margin-bottom: 15px;
+  }
+}

@@ -95,58 +95,31 @@ $q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', '
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Penjualan - LABORA</title>
-  <link rel="stylesheet" href="../assets/css/global.css">
   <link rel="stylesheet" href="../assets/css/sidebar.css">
   <link rel="stylesheet" href="../assets/css/header.css">
-      <style>
-        .btn-primary { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
-        .btn-outline { background: white; border: 1px solid #d1d5db; padding: 7px 15px; border-radius: 6px; text-decoration: none; color: #374151; font-size: 13px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-        th { text-align: left; padding: 12px 15px; background: #f9fafb; font-size: 13px; color: #6b7280; border-bottom: 1px solid #edf2f7; }
-        td { padding: 12px 15px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
-        .badge-selesai { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-        .badge-batal { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-        
-        /* 🔍 SEARCH BOX STYLING */
-        .search-container { position: relative; margin-bottom: 15px; }
-        .search-container input {
-          width: 100%;
-          padding: 12px 20px 12px 45px;
-          border: 1px solid #e2e8f0;
-          border-radius: 10px;
-          font-size: 14px;
-          transition: all 0.3s;
-          background: #fff;
-        }
-        .search-container input:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-        .search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 18px; }
-        .no-result-msg { display: none; text-align: center; padding: 30px; color: #94a3b8; font-style: italic; }
-      </style>
-    </head>
-    <body>
+  <link rel="stylesheet" href="../assets/css/penjualan_list.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../assets/css/global.css?v=<?= time() ?>">
+</head>
+<body>
     <div class="container">
       <?php include __DIR__ . '/../includes/sidebar.php'; ?>
       <div class="main-content">
         <?php include __DIR__ . '/../includes/header.php'; ?>
         <div class="page-content">
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <div class="page-header-flex">
             <h2>Manajemen Penjualan</h2>
-            <form method="POST" style="display:flex; gap:10px;">
-              <!-- <input type="text" name="pelanggan" placeholder="Nama Pelanggan (opsional)" style="padding:10px; border-radius:8px; border:1px solid #ddd; width:200px;"> -->
+            <form method="POST" class="header-form-flex">
               <button type="submit" name="buat_transaksi" class="btn-primary">+ Buat Transaksi Baru</button>
             </form>
           </div>
 
           <!-- 📜 SECTION: RIWAYAT TRANSAKSI SELESAI -->
-          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 15px;">
+          <div class="sub-header-flex">
             <h3>📜 Riwayat Penjualan (Selesai/Batal)</h3>
-            <div style="width: 300px;">
+            <div class="search-wrapper">
               <div class="search-container">
                 <span class="search-icon">🔍</span>
                 <input type="text" id="pelangganSearch" placeholder="Cari nama pelanggan...">
@@ -154,7 +127,8 @@ $q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', '
             </div>
           </div>
 
-          <table id="historyTable">
+          <div class="table-responsive">
+            <table id="historyTable">
             <thead>
               <tr>
                 <th>No. Invoice</th>
@@ -187,7 +161,8 @@ $q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', '
                 <?php endwhile; ?>
               <?php endif; ?>
             </tbody>
-          </table>
+            </table>
+          </div>
           <div id="noMatch" class="no-result-msg">Data transaksi tidak ditemukan.</div>
 
         </div>

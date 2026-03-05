@@ -18,3 +18,13 @@
   height: 32px;
   border-radius: 50%;
 }
+
+@media (max-width: 768px) {
+  .header {
+    justify-content: space-between;
+    padding: 10px 0;
+  }
+  .header .user-info span {
+    font-size: 13px;
+  }
+}

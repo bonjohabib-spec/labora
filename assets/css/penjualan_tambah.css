@@ -274,12 +274,60 @@ body.pos-screen {
 
 /* FOOTER POS */
 .pos-footer {
-  padding: 20px;
+  padding: 20px 25px;
   background: white;
   border-top: 1px solid var(--border-color);
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: 30px;
+}
+
+.payment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-right: 1px solid var(--border-color);
+  padding-right: 30px;
+}
+
+.payment-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 15px;
+}
+
+.payment-row label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.input-bayar {
+  width: 150px;
+  padding: 8px 12px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--bg-pos);
+  outline: none;
+  transition: 0.2s;
+}
+
+.input-bayar:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.kembali-display {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--success);
+  text-align: right;
 }
 
 .total-section {
@@ -333,4 +381,73 @@ body.pos-screen {
 }
 .select2-container--default .select2-selection--single .select2-selection__arrow {
   height: 43px !important;
+}
+
+/* 📱 RESPONSIVE POS (MOBILE) */
+@media (max-width: 768px) {
+  body.pos-screen {
+    height: auto;
+    overflow-y: auto;
+  }
+
+  .pos-header {
+    padding: 10px 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .pos-header h1 {
+    font-size: 16px;
+  }
+
+  .pos-container {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  .pos-sidebar-form {
+    width: 100%;
+    border-right: none;
+    border-bottom: 2px solid var(--border-color);
+    padding: 15px;
+  }
+
+  .pos-main-table {
+    padding: 15px;
+  }
+
+  .pos-footer {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 15px;
+    position: sticky;
+    bottom: 0;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+  }
+
+  .payment-section {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding-right: 0;
+    padding-bottom: 15px;
+  }
+
+  .total-amount {
+    font-size: 24px;
+  }
+
+  .btn-checkout {
+    width: 100%;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  .pos-table th, .pos-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
 }

@@ -26,8 +26,13 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'owner') {
       <?php include __DIR__ . '/../includes/header.php'; ?>
 
       <div class="page-content">
+        <div style="margin-bottom: 20px;">
+          <a href="stok_barang.php" style="text-decoration: none; color: #64748b; font-size: 14px; display: flex; align-items: center; gap: 5px;">
+            <span>←</span> Kembali ke Daftar Stok
+          </a>
+        </div>
         <section class="form-section">
-          <h1>Tambah Barang Baru</h1>
+          <h1 style="margin-top: 0;">Tambah Barang Baru</h1>
 
           <form action="proses_tambah_barang.php" method="POST" class="form-barang">
             <div class="form-group">

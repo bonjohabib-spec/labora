@@ -134,40 +134,8 @@ $d = $conn->query("
   <link rel="stylesheet" href="../assets/css/global.css">
   <link rel="stylesheet" href="../assets/css/sidebar.css">
   <link rel="stylesheet" href="../assets/css/header.css">
-  <style>
-    .page-content { padding: 30px; background: #f8fafc; min-height: 100vh; }
-    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin-bottom: 25px; overflow: hidden; }
-    .card-header { padding: 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-    .card-header h3 { font-size: 18px; font-weight: 700; color: #1e293b; }
-    .card-body { padding: 20px; }
-    
-    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 5px; }
-    .info-item label { display: block; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-    .info-item span { font-size: 15px; font-weight: 700; color: #1e293b; }
-    
-    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-    .status-selesai { background: #dcfce7; color: #166534; }
-    .status-aktif { background: #fffbeb; color: #92400e; }
-    .status-batal { background: #fee2e2; color: #991b1b; }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th { text-align: left; padding: 12px 15px; background: #f8fafc; font-size: 12px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
-    td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
-    
-    .summary-box { background: #f1f5f9; border-radius: 8px; padding: 15px; margin-top: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
-    .summary-item { font-size: 14px; color: #64748b; }
-    .summary-item strong { font-size: 20px; color: #1e293b; margin-left: 10px; }
-    
-    .btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; transition: 0.2s; cursor: pointer; border: none; }
-    .btn-secondary { background: #e2e8f0; color: #475569; }
-    .btn-secondary:hover { background: #cbd5e1; }
-    .btn-print { background: #3b82f6; color: white; margin-left: 10px; }
-    .btn-print:hover { background: #2563eb; transform: translateY(-1px); }
-    
-    .qty-edit, .harga-edit { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; width: 80px; font-size: 13px; }
-    .action-links a { font-size: 13px; color: #ef4444; margin-left: 10px; text-decoration: none; }
-    .action-links a:hover { text-decoration: underline; }
-  </style>
+  <link rel="stylesheet" href="../assets/css/detail_penjualan_v2.css?v=<?= time() ?>">
+</head>
 </head>
 <body>
 <div class="container">
@@ -257,7 +225,7 @@ $d = $conn->query("
 
           <div style="margin-top: 25px; display: flex; justify-content: space-between;">
             <a href="penjualan.php" class="btn btn-secondary">← Kembali ke Daftar</a>
-            <a href="../cetak_struk.php?id=<?= $penjualan['id_penjualan'] ?>" target="_blank" class="btn btn-print">🧾 Cetak Struk Belanja</a>
+            <a href="penjualan_finish.php?id=<?= $penjualan['id_penjualan'] ?>" class="btn btn-print">🧾 Cetak Struk Belanja</a>
           </div>
         </div>
       </div>

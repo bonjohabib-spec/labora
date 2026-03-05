@@ -1,0 +1,72 @@
+.btn-primary { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+.btn-outline { background: white; border: 1px solid #d1d5db; padding: 7px 15px; border-radius: 6px; text-decoration: none; color: #374151; font-size: 13px; }
+table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+th { text-align: left; padding: 12px 15px; background: #f9fafb; font-size: 13px; color: #6b7280; border-bottom: 1px solid #edf2f7; }
+td { padding: 12px 15px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+.badge-selesai { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-batal { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+/* 🔍 SEARCH BOX STYLING */
+.search-container { position: relative; margin-bottom: 15px; }
+.search-container input {
+  width: 100%;
+  padding: 12px 20px 12px 45px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.3s;
+  background: #fff;
+}
+.search-container input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+.search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 18px; }
+.no-result-msg { display: none; text-align: center; padding: 30px; color: #94a3b8; font-style: italic; }
+
+/* LAYOUT HELPER */
+.page-header-flex, .sub-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.header-form-flex { display: flex; gap: 10px; }
+.search-wrapper { width: 300px; }
+
+/* 📱 RESPONSIVE (MOBILE) */
+@media (max-width: 768px) {
+  .page-header-flex, .sub-header-flex {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .header-form-flex, .search-wrapper {
+    width: 100%;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 15px;
+  }
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+  }
+
+  table {
+    min-width: 600px; /* Biar tabel bisa di-scroll horizontal di HP */
+  }
+
+  th, td {
+    padding: 10px;
+    font-size: 13px;
+  }
+}

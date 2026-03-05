@@ -4,7 +4,11 @@ include __DIR__ . '/../includes/koneksi.php';
 
 
 if (isset($_SESSION['username'])) {
-    header("Location: ../dashboard/dashboard.php");
+    if ($_SESSION['user_role'] == 'kasir') {
+        header("Location: ../penjualan/penjualan.php");
+    } else {
+        header("Location: ../dashboard/dashboard.php");
+    }
     exit;
 }
 
@@ -20,7 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($data && $data['password'] === $password) {
         $_SESSION['username'] = $data['username'];
         $_SESSION['user_role'] = $data['role'];
-        header("Location: ../dashboard/dashboard.php");
+        
+        if ($_SESSION['user_role'] == 'kasir') {
+            header("Location: ../penjualan/penjualan.php");
+        } else {
+            header("Location: ../dashboard/dashboard.php");
+        }
         exit;
     } else {
         $error = "❌ Username atau password salah!";

@@ -42,17 +42,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             catat_riwayat_stok($conn, $id_b, $id_v, $qty, 'pengurangan', $ket);
         }
 
-        // 3. Update status transaksi jadi selesai
+        // 3. Update status transaksi jadi selesai dengan data pembayaran
+        $bayar   = floatval($_POST['bayar'] ?? 0);
+        $kembali = floatval($_POST['kembali'] ?? 0);
+
         $update = $conn->prepare("
             UPDATE penjualan 
-            SET status = 'selesai', pelanggan = ? 
+            SET status = 'selesai', pelanggan = ?, bayar = ?, kembali = ? 
             WHERE id_penjualan = ?
         ");
-        $update->bind_param("si", $pelanggan, $id_penjualan);
+        $update->bind_param("sdii", $pelanggan, $bayar, $kembali, $id_penjualan);
         $update->execute();
 
         $conn->commit();
-        header("Location: penjualan.php");
+        header("Location: penjualan_finish.php?id=$id_penjualan");
         exit;
 
     } catch (Exception $e) {

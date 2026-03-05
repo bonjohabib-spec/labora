@@ -54,69 +54,106 @@ $qLebih = mysqli_query($conn, "SELECT nama_barang FROM barang WHERE stok > stok_
   <div class="main-content">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
-    <h2>Dashboard - LABORA</h2>
-
     <div class="page-content">
-      <div class="cards">
-        <div class="card">
-          <p>Omzet Hari Ini</p>
-          <h2>Rp<?= number_format($omzet, 0, ',', '.') ?></h2>
+      <div class="welcome-header">
+        <h1>Halo, <?= htmlspecialchars($_SESSION['username'] ?? 'Owner') ?>! 👋</h1>
+        <p>Inilah ringkasan aktivitas toko Anda hari ini, <?= date('d M Y') ?>.</p>
+      </div>
+
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-icon purple">💰</div>
+          <div class="stat-info">
+            <label>Omzet Hari Ini</label>
+            <h3>Rp<?= number_format($omzet, 0, ',', '.') ?></h3>
+          </div>
         </div>
-        <div class="card">
-          <p>Keuntungan Hari Ini</p>
-          <h2>Rp<?= number_format($keuntungan, 0, ',', '.') ?></h2>
+        
+        <div class="stat-card">
+          <div class="stat-icon emerald">📈</div>
+          <div class="stat-info">
+            <label>Keuntungan Hari Ini</label>
+            <h3 style="color: #059669;">Rp<?= number_format($keuntungan, 0, ',', '.') ?></h3>
+          </div>
         </div>
-        <div class="card">
-          <p>Transaksi Hari Ini</p>
-          <h2><?= $transaksi ?></h2>
+
+        <div class="stat-card">
+          <div class="stat-icon blue">🛒</div>
+          <div class="stat-info">
+            <label>Total Transaksi</label>
+            <h3><?= number_format($transaksi, 0, ',', '.') ?> <small>Trx</small></h3>
+          </div>
         </div>
       </div>
 
-      <div class="content-grid">
-        <div class="barang-terlaris">
-          <div class="header">
-            <h3>Barang Terjual Terbanyak</h3>
-            <a href="#">Lihat Semua</a>
+      <div class="dashboard-grid">
+        <!-- BARANG TERLARIS -->
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <h3>🏆 Leaderboard Penjualan</h3>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Barang</th>
-                <th>Warna</th>
-                <th>Ukuran</th>
-                <th>Terjual</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php while ($b = mysqli_fetch_assoc($qBarang)): ?>
+          <div class="table-responsive">
+            <table class="premium-table">
+              <thead>
                 <tr>
-                  <td><?= htmlspecialchars($b['nama_barang']) ?></td>
-                  <td><?= htmlspecialchars($b['warna']) ?></td>
-                  <td><?= htmlspecialchars($b['ukuran']) ?></td>
-                  <td><?= $b['terjual'] ?></td>
+                  <th width="50">Pos</th>
+                  <th>Produk & Varian</th>
+                  <th class="txt-center">Terjual</th>
                 </tr>
-              <?php endwhile; ?>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <?php $rank = 1; while ($b = mysqli_fetch_assoc($qBarang)): ?>
+                  <tr>
+                    <td class="txt-center"><span class="rank-badge rank-<?= $rank ?>"><?= $rank++ ?></span></td>
+                    <td>
+                      <div class="product-name"><?= htmlspecialchars($b['nama_barang']) ?></div>
+                      <div class="product-meta"><?= htmlspecialchars($b['warna']) ?> - <?= htmlspecialchars($b['ukuran']) ?></div>
+                    </td>
+                    <td class="txt-center"><strong><?= number_format($b['terjual'], 0, ',', '.') ?></strong> <small>Pcs</small></td>
+                  </tr>
+                <?php endwhile; ?>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div class="notifikasi-stok">
-          <h3>Notifikasi Stok</h3>
-          <div class="notif">
-            <p class="title red">Stok Menipis</p>
-            <ul>
-              <?php while ($m = mysqli_fetch_assoc($qMenipis)): ?>
-                <li><?= htmlspecialchars($m['nama_barang']) ?></li>
-              <?php endwhile; ?>
-            </ul>
+        <!-- NOTIFIKASI STOK -->
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <h3>⚠️ Notifikasi Inventori</h3>
           </div>
-          <div class="notif">
-            <p class="title green">Stok Melebihi Batas</p>
-            <ul>
-              <?php while ($l = mysqli_fetch_assoc($qLebih)): ?>
-                <li><?= htmlspecialchars($l['nama_barang']) ?></li>
-              <?php endwhile; ?>
-            </ul>
+          <div class="notif-container">
+            <div class="notif-box danger">
+              <div class="notif-box-icon">🚨</div>
+              <div class="notif-box-content">
+                <strong>Stok Menipis</strong>
+                <ul>
+                  <?php if (mysqli_num_rows($qMenipis) > 0): ?>
+                    <?php while ($m = mysqli_fetch_assoc($qMenipis)): ?>
+                      <li><?= htmlspecialchars($m['nama_barang']) ?></li>
+                    <?php endwhile; ?>
+                  <?php else: ?>
+                    <li class="empty-notif">Semua stok barang tercukupi.</li>
+                  <?php endif; ?>
+                </ul>
+              </div>
+            </div>
+
+            <div class="notif-box success">
+              <div class="notif-box-icon">📦</div>
+              <div class="notif-box-content">
+                <strong>Stok Melebihi Batas</strong>
+                <ul>
+                  <?php if (mysqli_num_rows($qLebih) > 0): ?>
+                    <?php while ($l = mysqli_fetch_assoc($qLebih)): ?>
+                      <li><?= htmlspecialchars($l['nama_barang']) ?></li>
+                    <?php endwhile; ?>
+                  <?php else: ?>
+                    <li class="empty-notif">Tidak ada stok berlebih.</li>
+                  <?php endif; ?>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>

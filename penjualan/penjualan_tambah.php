@@ -161,13 +161,27 @@ $detail = $conn->query("
           </table>
         </div>
         <div class="pos-footer">
+          <div class="payment-section">
+            <div class="payment-row">
+              <label>Nominal Bayar (Rp)</label>
+              <input type="number" id="bayar_display" class="input-bayar" placeholder="0" onfocus="this.select()">
+            </div>
+            <div class="payment-row">
+              <label>Kembalian</label>
+              <div class="kembali-display" id="kembali_text">Rp 0</div>
+            </div>
+          </div>
+          
           <div class="total-section">
             <span class="total-label">TOTAL AKHIR:</span>
             <span class="total-amount">Rp <span class="total-value"><?= number_format($total, 0, ',', '.') ?></span></span>
           </div>
-          <form method="POST" action="penjualan_selesai.php" onsubmit="return confirmSelesai();">
+          
+          <form method="POST" action="penjualan_selesai.php" id="formCheckout" onsubmit="return confirmSelesai();">
             <input type="hidden" name="id_penjualan" value="<?= $id_penjualan ?>">
             <input type="hidden" id="hidden_pelanggan" name="pelanggan">
+            <input type="hidden" id="hidden_bayar" name="bayar" value="0">
+            <input type="hidden" id="hidden_kembali" name="kembali" value="0">
             <button type="submit" class="btn-checkout">SELESAIKAN TRANSAKSI (F10)</button>
           </form>
         </div>
@@ -268,7 +282,36 @@ $(document).ready(function() {
       total += subtotal;
     });
     $('.total-value').text(total.toLocaleString('id-ID'));
+    hitungKembalian(); // Update kembalian saat total berubah
   }
+
+  // Logika Pembayaran
+  function hitungKembalian() {
+    const total = parseFloat($('.total-value').text().replace(/\D/g,'')) || 0;
+    const bayar = parseFloat($('#bayar_display').val()) || 0;
+    const kembali = bayar - total;
+    
+    $('#kembali_text').text(formatRupiah(Math.max(0, kembali)));
+    if (kembali < 0) {
+      $('#kembali_text').css('color', '#ef4444');
+    } else {
+      $('#kembali_text').css('color', '#10b981');
+    }
+    
+    // Set hidden inputs
+    $('#hidden_bayar').val(bayar);
+    $('#hidden_kembali').val(kembali);
+  }
+
+  $('#bayar_display').on('input', hitungKembalian);
+
+  // Shortcut F10 untuk checkout
+  $(document).keydown(function(e) {
+    if (e.which === 121) { // F10
+      e.preventDefault();
+      $('#formCheckout').submit();
+    }
+  });
 });
 </script>
 </body>

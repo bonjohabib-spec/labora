@@ -167,6 +167,20 @@ if (isset($_GET['hapus_user']) && $_SESSION['user_role'] === 'owner') {
                             <button type="submit" name="update_password" class="btn-save" style="background: #64748b;">Update Password</button>
                         </form>
                     </div>
+
+                    <!-- FULL WIDTH: CADANGAN DATA (OWNER ONLY) -->
+                    <?php if ($_SESSION['user_role'] === 'owner'): ?>
+                    <div class="settings-card" style="grid-column: span 2;">
+                        <h3>💾 Cadangan Data (Backup)</h3>
+                        <p style="font-size: 13px; color: #64748b; margin-bottom: 15px;">
+                            Unduh seluruh data transaksi, stok, dan pengaturan toko Anda untuk disimpan sebagai cadangan pribadi. 
+                            Gunakan file ini untuk memulihkan data jika terjadi masalah pada hosting.
+                        </p>
+                        <a href="backup_db.php" class="btn-save" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #0f172a; text-decoration: none;">
+                            📥 Unduh Cadangan Database (.sql)
+                        </a>
+                    </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- FULL WIDTH: MANAJEMEN PENGGUNA (OWNER ONLY) -->

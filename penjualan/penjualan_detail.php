@@ -219,7 +219,7 @@ $d = $conn->query("
 
           <div class="summary-box">
             <div class="summary-item">Total Pembayaran: <strong id="grand-total">Rp <?= number_format($grand,0,',','.') ?></strong></div>
-            <?php if ($_SESSION['user_role'] == 'owner'): ?>
+            <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'owner'): ?>
               <div class="summary-item">Estimasi Laba: <strong style="color: #16a34a;">Rp <?= number_format($penjualan['keuntungan'] ?? 0,0,',','.') ?></strong></div>
             <?php endif; ?>
           </div>

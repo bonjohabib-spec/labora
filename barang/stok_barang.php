@@ -49,12 +49,17 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
         $getBarang = $conn->query("SELECT id_barang FROM barang_varian WHERE id_varian = $id_varian")->fetch_assoc();
         $id_barang = $getBarang['id_barang'];
         
+        // Hapus data riwayat stok terkait varian ini
+        $conn->query("DELETE FROM riwayat_stok WHERE id_varian = $id_varian");
+        
         // Hapus varian
         $conn->query("DELETE FROM barang_varian WHERE id_varian = $id_varian");
         
-        // Jika barang induk tidak punya varian lagi, hapus juga
+        // Jika barang induk tidak punya varian lagi, hapus juga data induknya
         $sisaVarian = $conn->query("SELECT COUNT(*) AS sisa FROM barang_varian WHERE id_barang = $id_barang")->fetch_assoc()['sisa'];
         if ($sisaVarian == 0) {
+            // Hapus sisa riwayat yang mungkin hanya terikat ke id_barang (jarang, tapi jaga-jaga)
+            $conn->query("DELETE FROM riwayat_stok WHERE id_barang = $id_barang");
             $conn->query("DELETE FROM barang WHERE id_barang = $id_barang");
         }
         

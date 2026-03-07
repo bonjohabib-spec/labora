@@ -93,16 +93,45 @@ if (isset($_POST['buat_transaksi']) || (isset($_GET['action']) && $_GET['action'
 $conn->query("DELETE FROM detail_penjualan WHERE id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE status = 'aktif' AND kasir = '$kasir')");
 $conn->query("DELETE FROM penjualan WHERE status = 'aktif' AND kasir = '$kasir'");
 
-// Paginasi
+// Paginasi & Filter
 $per_page = 20;
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $offset = ($page - 1) * $per_page;
 
-$q_total = $conn->query("SELECT COUNT(*) AS total FROM penjualan WHERE status IN ('selesai', 'batal')");
+$filter = $_GET['filter'] ?? 'all';
+$todayStr = date('Y-m-d');
+$where_clause = "status IN ('selesai', 'batal')";
+
+if ($filter == 'unpaid') {
+    $where_clause .= " AND sisa_piutang > 0";
+} elseif ($filter == 'overdue') {
+    $where_clause .= " AND sisa_piutang > 0 AND jatuh_tempo < '$todayStr'";
+}
+
+$q_total = $conn->query("SELECT COUNT(*) AS total FROM penjualan WHERE $where_clause");
 $total_rows = $q_total->fetch_assoc()['total'];
 $total_pages = ceil($total_rows / $per_page);
 
-$q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', 'batal') ORDER BY tanggal DESC LIMIT $per_page OFFSET $offset");
+$q_riwayat = $conn->query("SELECT * FROM penjualan WHERE $where_clause ORDER BY tanggal DESC LIMIT $per_page OFFSET $offset");
+
+// === 📊 QUERY SUMMARY DASHBOARD (ALA MEKARI) ===
+// 1. Penagihan Belum Dibayar (Kuning)
+$qUnpaid = $conn->query("SELECT SUM(sisa_piutang) AS total, COUNT(*) AS jml FROM penjualan WHERE sisa_piutang > 0 AND status = 'selesai'");
+$dataUnpaid = $qUnpaid->fetch_assoc();
+
+// 2. Penagihan Telat Dibayar (Merah)
+$todayStr = date('Y-m-d');
+$qOverdue = $conn->query("SELECT SUM(sisa_piutang) AS total, COUNT(*) AS jml FROM penjualan WHERE sisa_piutang > 0 AND status = 'selesai' AND jatuh_tempo IS NOT NULL AND jatuh_tempo < '$todayStr'");
+$dataOverdue = $qOverdue->fetch_assoc();
+
+// 3. Pelunasan Diterima 30 Hari Terakhir (Hijau)
+$last30Days = date('Y-m-d H:i:s', strtotime('-30 days'));
+$qPayRec = $conn->query("SELECT SUM(nominal) AS total FROM pembayaran_piutang WHERE tanggal >= '$last30Days'");
+$dataPayRec = $qPayRec->fetch_assoc();
+// Tambah Tunai/DP dari penjualan langsung 30 hari terakhir
+$qSalesCash = $conn->query("SELECT SUM(total - sisa_piutang) AS total FROM penjualan WHERE status = 'selesai' AND tanggal >= '$last30Days'");
+$dataSalesCash = $qSalesCash->fetch_assoc();
+$totalReceived30 = ($dataPayRec['total'] ?? 0) + ($dataSalesCash['total'] ?? 0);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -124,14 +153,59 @@ $q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', '
 
           <div class="page-header-flex">
             <h2>🛒 Manajemen Penjualan</h2>
-            <form method="POST" class="header-form-flex">
-              <button type="submit" name="buat_transaksi" class="btn-primary">+ Buat Transaksi Baru</button>
+          </div>
+
+          <!-- 📊 DASHBOARD SUMMARY (ALA MEKARI) -->
+          <div class="summary-container">
+            <!-- ACTION CARD: BUAT TRANSAKSI BARU -->
+            <form method="POST" class="action-card">
+              <button type="submit" name="buat_transaksi">
+                <div class="btn-icon">🛒</div>
+                <div class="btn-text">
+                  <strong>Buat Transaksi</strong>
+                  <small>Kasir Kece Labora</small>
+                </div>
+              </button>
             </form>
+
+            <!-- Card 1: Kuning (Belum Lunas) -->
+            <a href="?filter=unpaid" class="summary-card card-unpaid <?= $filter == 'unpaid' ? 'active-filter' : '' ?>" style="text-decoration: none;">
+              <div class="summary-header">
+                <span class="summary-title">Belum Lunas</span>
+                <span class="summary-badge"><?= $dataUnpaid['jml'] ?></span>
+              </div>
+              <div class="summary-value">Rp <?= number_format($dataUnpaid['total'] ?? 0, 0, ',', '.') ?></div>
+              <span class="summary-label">Piutang Pelanggan</span>
+            </a>
+
+            <!-- Card 2: Merah (Jatuh Tempo) -->
+            <a href="?filter=overdue" class="summary-card card-overdue <?= $filter == 'overdue' ? 'active-filter' : '' ?>" style="text-decoration: none;">
+              <div class="summary-header">
+                <span class="summary-title">Jatuh Tempo</span>
+                <span class="summary-badge"><?= $dataOverdue['jml'] ?></span>
+              </div>
+              <div class="summary-value">Rp <?= number_format($dataOverdue['total'] ?? 0, 0, ',', '.') ?></div>
+              <span class="summary-label">Tunggakan Telat</span>
+            </a>
+
+            <!-- Card 3: Hijau (Pelunasan 30 Hari) -->
+            <div class="summary-card card-received">
+              <div class="summary-header">
+                <span class="summary-title">Kas Masuk</span>
+              </div>
+              <div class="summary-value">Rp <?= number_format($totalReceived30, 0, ',', '.') ?></div>
+              <span class="summary-label">Diterima (30 Hari)</span>
+            </div>
           </div>
 
           <!-- 📜 SECTION: RIWAYAT TRANSAKSI SELESAI -->
           <div class="sub-header-flex">
-            <h3> Riwayat Penjualan (Selesai/Batal)</h3>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <h3> Riwayat Penjualan (Selesai/Batal)</h3>
+                <?php if ($filter != 'all'): ?>
+                    <a href="penjualan.php" class="btn-outline" style="border-color: #3b82f6; color: #3b82f6; background: #eff6ff; padding: 4px 10px;">✕ Hapus Filter</a>
+                <?php endif; ?>
+            </div>
             <div class="search-wrapper">
               <div class="search-container">
                 <span class="search-icon">🔍</span>
@@ -147,6 +221,7 @@ $q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', '
                 <th>No. Invoice</th>
                 <th>Tanggal</th>
                 <th>Pelanggan</th>
+                <th>Sisa Tagihan</th>
                 <th>Total</th>
                 <th>Status</th>
                 <th>Aksi</th>
@@ -154,18 +229,31 @@ $q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', '
             </thead>
             <tbody>
               <?php if ($q_riwayat->num_rows == 0): ?>
-                <tr><td colspan="6" style="text-align:center; padding:30px; color:#9ca3af;">Belum ada riwayat transaksi.</td></tr>
+                <tr><td colspan="7" style="text-align:center; padding:30px; color:#9ca3af;">Belum ada riwayat transaksi.</td></tr>
               <?php else: ?>
                 <?php while($p = $q_riwayat->fetch_assoc()): ?>
                 <tr class="history-row">
                   <td><a href="penjualan_detail.php?id=<?= $p['id_penjualan'] ?>" style="color:#3b82f6; font-weight:600;">#INV-<?= $p['id_penjualan'] ?></a></td>
                   <td><?= date('d/m/Y', strtotime($p['tanggal'])) ?></td>
                   <td class="customer-col"><?= htmlspecialchars($p['pelanggan'] ?: '-') ?></td>
+                  <td>
+                    <?php if ($p['sisa_piutang'] > 0): ?>
+                      <span class="sisa-tagihan-col">Rp <?= number_format($p['sisa_piutang'], 0, ',', '.') ?></span>
+                    <?php else: ?>
+                      <span class="sisa-tagihan-nol">Rp 0</span>
+                    <?php endif; ?>
+                  </td>
                   <td><strong>Rp <?= number_format($p['total'], 0, ',', '.') ?></strong></td>
                   <td>
-                    <span class="<?= $p['status'] == 'selesai' ? 'badge-selesai' : 'badge-batal' ?>">
-                      <?= ucfirst($p['status']) ?>
-                    </span>
+                    <?php if ($p['status'] == 'selesai'): ?>
+                        <?php if ($p['sisa_piutang'] > 0): ?>
+                            <span class="status-badge status-piutang">Cicil</span>
+                        <?php else: ?>
+                            <span class="status-badge status-lunas">Selesai</span>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span class="badge-batal">Batal</span>
+                    <?php endif; ?>
                   </td>
                   <td>
                     <a href="penjualan.php?hapus=<?= $p['id_penjualan'] ?>" class="btn-outline" onclick="return confirm('Hapus riwayat ini?')">🗑️ Hapus</a>

@@ -55,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $bayar   = floatval($_POST['bayar'] ?? 0);
         $kembali = ($metode == 'tunai') ? max(0, $bayar - $total_akhir) : 0;
         $piutang = ($metode == 'piutang') ? max(0, $total_akhir - $bayar) : 0;
+        $tgl_jt = ($metode == 'piutang') ? date('Y-m-d', strtotime('+14 days')) : null;
 
         $update = $conn->prepare("
             UPDATE penjualan 
@@ -66,16 +67,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 jumlah_bayar = ?, 
                 sisa_piutang = ?,
                 bayar = ?, 
-                kembali = ? 
+                kembali = ?,
+                jatuh_tempo = ?
             WHERE id_penjualan = ?
         ");
-        $update->bind_param("sddsddddi", $pelanggan, $total_akhir, $untung_akhir, $metode, $bayar, $piutang, $bayar, $kembali, $id_penjualan);
+        $update->bind_param("sddsddddsi", $pelanggan, $total_akhir, $untung_akhir, $metode, $bayar, $piutang, $bayar, $kembali, $tgl_jt, $id_penjualan);
         $update->execute();
 
         // 5. Update Saldo Kas Shift (Jika bayar tunai/DP)
         if ($bayar > 0) {
+            $net_cash = $bayar - $kembali;
             $updShift = $conn->prepare("UPDATE kas_shift SET saldo_akhir_sistem = saldo_akhir_sistem + ? WHERE status = 'open' AND kasir = (SELECT kasir FROM penjualan WHERE id_penjualan = ?)");
-            $updShift->bind_param("di", $bayar, $id_penjualan);
+            $updShift->bind_param("di", $net_cash, $id_penjualan);
             $updShift->execute();
         }
 

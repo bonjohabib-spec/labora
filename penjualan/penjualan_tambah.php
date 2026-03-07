@@ -1,3 +1,4 @@
+<?php
 include __DIR__ . '/../includes/koneksi.php';
 include __DIR__ . '/../includes/auth_shift.php';
 if (session_status() == PHP_SESSION_NONE) session_start();

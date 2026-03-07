@@ -24,7 +24,33 @@ $res_count = mysqli_query($conn, $query_count);
 $total_data = mysqli_fetch_assoc($res_count)['total'];
 $total_pages = ceil($total_data / $per_page);
 
-// 1. Data Penjualan Terperinci
+// 1. Ringkasan Laporan (Kartu Utama)
+$query_summary = "SELECT 
+                    SUM(total) as total_omset,
+                    SUM(sisa_piutang) as total_piutang
+                  FROM penjualan 
+                  WHERE status='selesai' 
+                  AND DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'";
+$res_summary = mysqli_query($conn, $query_summary);
+$summ = mysqli_fetch_assoc($res_summary);
+
+$total_omset = $summ['total_omset'] ?? 0;
+$total_piutang = $summ['total_piutang'] ?? 0;
+
+// Kas Masuk = (Total Omset - Sisa Piutang) - (Cicilan untuk nota di periode ini) + (Semua Cicilan yang masuk di periode ini)
+// Logika: (Omset - Sisa) memberikan total uang yang SUDAH masuk untuk nota tsb sampai detik ini.
+// Karena kita juga menjumlahkan $kas_cicilan secara global, maka cicilan nota baru (yang sudah terhitung di $kas_cicilan) harus kita kurangi di sisi Penjualan/DP.
+$qKasCicilan = $conn->query("SELECT SUM(nominal) as total FROM pembayaran_piutang WHERE DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'");
+$kas_cicilan = $qKasCicilan->fetch_assoc()['total'] ?? 0;
+
+$qCicilanNotaBaru = $conn->query("SELECT SUM(nominal) FROM pembayaran_piutang 
+                                  WHERE DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir' 
+                                  AND id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir')");
+$cicilan_nota_baru = $qCicilanNotaBaru->fetch_row()[0] ?? 0;
+
+$total_kas_masuk = ($total_omset - $total_piutang) - $cicilan_nota_baru + $kas_cicilan;
+
+// 2. Data Penjualan Terperinci
 $query_detail = "SELECT * FROM penjualan 
                  WHERE status='selesai' 
                  AND DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'";
@@ -109,6 +135,35 @@ $res_items = mysqli_query($conn, $query_top_items);
           <button type="submit" class="btn-filter">Tampilkan</button>
         </div>
       </form>
+
+      <!-- SUMMARY CARDS V2 -->
+      <div class="summary-stats">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #eff6ff; color: #3b82f6;">💰</div>
+          <div class="stat-info">
+            <span class="stat-label">Total Omset</span>
+            <span class="stat-value">Rp <?= number_format($total_omset, 0, ',', '.') ?></span>
+            <span class="stat-desc">Volume penjualan kotor</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: #f0fdf4; color: #22c55e;">💵</div>
+          <div class="stat-info">
+            <span class="stat-label">Total Kas Masuk</span>
+            <span class="stat-value">Rp <?= number_format($total_kas_masuk, 0, ',', '.') ?></span>
+            <span class="stat-desc">Tunai + DP + Cicilan</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-accent" style="background: #f97316;"></div>
+          <div class="stat-icon" style="background: #fff7ed; color: #f97316;">📋</div>
+          <div class="stat-info">
+            <span class="stat-label">Total Piutang</span>
+            <span class="stat-value">Rp <?= number_format($total_piutang, 0, ',', '.') ?></span>
+            <span class="stat-desc">Sisa tagihan menggantung</span>
+          </div>
+        </div>
+      </div>
 
       <div class="analytics-grid">
         <!-- TOP CUSTOMERS -->
@@ -205,9 +260,16 @@ $res_items = mysqli_query($conn, $query_top_items);
               </tr>
             </thead>
             <tbody>
-              <?php while($row = mysqli_fetch_assoc($res_detail)): ?>
+              <?php while($row = mysqli_fetch_assoc($res_detail)): 
+                $status_lunas = $row['sisa_piutang'] <= 0;
+              ?>
               <tr>
-                <td style="font-weight: 600; color: var(--primary-blue, #3b82f6);">#INV-<?= $row['id_penjualan'] ?></td>
+                <td>
+                    <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">#INV-<?= $row['id_penjualan'] ?></div>
+                    <span class="status-badge <?= $status_lunas ? 'status-lunas' : 'status-piutang' ?>">
+                        <?= $status_lunas ? '✅ Selesai' : '⏳ Cicil' ?>
+                    </span>
+                </td>
                 <td><?= date('d/m/Y H:i', strtotime($row['tanggal'])) ?></td>
                 <td><?= htmlspecialchars($row['pelanggan'] ?: '-') ?></td>
                 <td><?= htmlspecialchars($row['kasir']) ?></td>

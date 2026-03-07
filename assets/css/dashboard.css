@@ -89,6 +89,7 @@
   gap: 16px;
   border: 1px solid #f1f5f9;
   position: relative;
+  overflow: hidden;
 }
 
 .val-flex {
@@ -110,12 +111,31 @@
 .stat-info label {
   display: block;
   font-size: 11px;
-  color: #94a3b8;
   font-weight: 700;
-  margin-bottom: 4px;
+  color: #64748b;
+  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+/* Card Colors V2 - More Elegant & Cohesive */
+.card-omzet::before { background: #6366f1; } /* Indigo */
+.card-omzet:hover { border-color: #c7d2fe; background: #f8faff; }
+
+.card-laba::before { background: #10b981; } /* Emerald */
+.card-laba:hover { border-color: #a7f3d0; background: #f0fdf4; }
+
+.card-transaksi::before { background: #64748b; } /* Slate */
+.card-transaksi:hover { border-color: #e2e8f0; background: #f8fafc; }
 
 .stat-info h3 {
   margin: 0;

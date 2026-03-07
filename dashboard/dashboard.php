@@ -124,8 +124,7 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
       </div>
 
       <div class="stat-cards">
-        <div class="stat-card">
-          <div class="stat-icon purple">💰</div>
+        <div class="stat-card card-omzet">
           <div class="stat-info">
             <label>Omzet Hari Ini</label>
             <div class="val-flex">
@@ -137,8 +136,7 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
           </div>
         </div>
         
-        <div class="stat-card">
-          <div class="stat-icon emerald">📈</div>
+        <div class="stat-card card-laba">
           <div class="stat-info">
             <label>Laba Bersih Hari Ini</label>
             <div class="val-flex">
@@ -150,8 +148,7 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon blue">🛍️</div>
+        <div class="stat-card card-transaksi">
           <div class="stat-info">
             <label>Total Transaksi</label>
             <h3><?= number_format($transaksi, 0, ',', '.') ?> <small>Trx</small></h3>

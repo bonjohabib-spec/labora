@@ -1,6 +1,9 @@
 /* === PENJUALAN LIST - PREMIUM CLEAN UI === */
 
 /* Page Header */
+.page-header-flex {
+  margin-bottom: 25px;
+}
 .page-header-flex h2 {
   font-size: 18px;
   font-weight: 700;
@@ -78,6 +81,21 @@ td {
   color: #475569;
 }
 
+/* Specific Column Widths */
+th:first-child, td:first-child {
+  width: 100px; /* Jarak No. Invoice dipersempit */
+}
+
+.sisa-tagihan-col {
+  color: #ef4444; /* Warna merah agar sisa tagihan terlihat jelas */
+  font-weight: 600;
+}
+
+.sisa-tagihan-nol {
+  color: #cbd5e1; /* Warna abu-abu pudar jika Rp 0 */
+  font-weight: 400;
+}
+
 /* Hover Effect pada Baris */
 tbody tr {
   transition: background 0.15s;
@@ -97,22 +115,40 @@ td a[href*="detail"]:hover {
   text-decoration: underline;
 }
 
-/* Badge Status */
+/* ===== STATUS BADGES V2 ===== */
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-block;
+}
+.status-lunas { 
+    background: #dcfce7; 
+    color: #15803d; 
+    border: 1px solid #bbf7d0; 
+}
+.status-piutang { 
+    background: #fee2e2; 
+    color: #991b1b; 
+    border: 1px solid #fecaca; 
+}
+
 .badge-selesai {
-  background: #ecfdf5;
-  color: #059669;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
+    background: #ecfdf5;
+    color: #059669;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
 }
 .badge-batal {
-  background: #fef2f2;
-  color: #dc2626;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
+    background: #fef2f2;
+    color: #dc2626;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
 }
 
 /* 🔍 SEARCH BOX */
@@ -138,15 +174,160 @@ td a[href*="detail"]:hover {
 .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #cbd5e1; font-size: 15px; }
 .no-result-msg { display: none; text-align: center; padding: 30px; color: #94a3b8; font-style: italic; font-size: 13px; }
 
-/* LAYOUT HELPER */
-.page-header-flex, .sub-header-flex {
+/* ===== SUMMARY CARDS (ALA MEKARI) ===== */
+.summary-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 Kolom: 1 Action + 3 Stats */
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.summary-card, .action-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px; /* Perkecil padding (Dashboard style) */
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100px;
+}
+
+/* --- ACTION CARD (TRANSAKSI BARU) --- */
+.action-card {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: white;
+  padding: 0; /* Biar child-nya full */
+}
+
+.action-card button {
+  background: transparent;
+  border: none;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.action-card .btn-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+.action-card .btn-text strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.action-card .btn-text small {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.action-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+/* --- STAT CARDS --- */
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.summary-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.card-unpaid::before { background: #eab308; }
+.card-overdue::before { background: #ef4444; }
+.card-received::before { background: #22c55e; }
+
+.summary-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
-.header-form-flex { display: flex; gap: 10px; }
-.search-wrapper { width: 280px; }
+
+.summary-title {
+  font-size: 11px; /* Perkecil title */
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.summary-badge {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.card-unpaid .summary-badge { background: #fefce8; color: #a16207; }
+.card-overdue .summary-badge { background: #fef2f2; color: #991b1b; }
+.card-received .summary-badge { background: #f0fdf4; color: #15803d; }
+
+.summary-value {
+  font-size: 18px; /* Perkecil value (Dashboard style) */
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.summary-label {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.summary-card.active-filter {
+  border-color: currentColor;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.1);
+  background: #f8fafc;
+}
+
+/* 📱 Responsive Adjustments */
+@media (max-width: 1024px) {
+  .summary-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .summary-container {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* 📱 RESPONSIVE (MOBILE) */
 @media (max-width: 768px) {

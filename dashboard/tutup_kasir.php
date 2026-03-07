@@ -11,13 +11,36 @@ if (!$active_shift) {
     exit();
 }
 
+$id_s = $active_shift['id_shift'];
+$waktu_buka = $active_shift['waktu_buka'];
+
+// 1. Hitung Total Omset (Volume) dan Sisa Piutang TRANSAKSI YANG DIBUAT DI SHIFT INI
+$qOmset = $conn->query("SELECT SUM(total) as vol, SUM(sisa_piutang) as sisa FROM penjualan WHERE tanggal >= '$waktu_buka' AND status = 'selesai'");
+$dataOmset = $qOmset->fetch_assoc();
+$total_vol = $dataOmset['vol'] ?? 0;
+$total_sisa = $dataOmset['sisa'] ?? 0;
+
+// 2. Hitung Pelunasan Cicilan Piutang yang masuk di shift ini (Bisa dari nota hari ini, atau nota minggu lalu)
+$qPiutangMasuk = $conn->query("SELECT SUM(nominal) as total FROM pembayaran_piutang WHERE id_shift = $id_s");
+$piutang_masuk = $qPiutangMasuk->fetch_assoc()['total'] ?? 0;
+
+// 3. Tunai Langsung / DP Awal
+// Logika: (Uang yang sudah masuk dari nota baru) - (Uang cicilan nota baru yang masuk lewat tombol piutang)
+// Karena tombol piutang nambah saldo_akhir_sistem, kita harus pisahkan mana yang "Uang Awal" dan mana yang "Uang Cicilan".
+$tunai_langsung = ($total_vol - $total_sisa) - ($conn->query("SELECT SUM(nominal) FROM pembayaran_piutang WHERE id_shift = $id_s AND id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE tanggal >= '$waktu_buka')")->fetch_row()[0] ?? 0);
+$tunai_langsung = max(0, $tunai_langsung);
+
+$total_gain_bersih = $tunai_langsung + $piutang_masuk;
+$total_seharusnya = $active_shift['saldo_awal'] + $total_gain_bersih;
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
     $saldo_fisik = floatval($_POST['saldo_fisik']);
-    $saldo_sistem = $active_shift['saldo_awal'] + $active_shift['saldo_akhir_sistem'];
+    $saldo_sistem = $total_seharusnya;
     $selisih = $saldo_fisik - $saldo_sistem;
     
-    $stmt = $conn->prepare("UPDATE kas_shift SET waktu_tutup = NOW(), saldo_akhir_fisik = ?, selisih = ?, status = 'closed' WHERE id_shift = ?");
-    $stmt->bind_param("ddi", $saldo_fisik, $selisih, $active_shift['id_shift']);
+    // Update Shift dengan nilai yang sudah dikoreksi (agar database bersih)
+    $stmt = $conn->prepare("UPDATE kas_shift SET waktu_tutup = NOW(), saldo_akhir_sistem = ?, saldo_akhir_fisik = ?, selisih = ?, status = 'closed' WHERE id_shift = ?");
+    $stmt->bind_param("dddi", $total_gain_bersih, $saldo_fisik, $selisih, $active_shift['id_shift']);
     
     if ($stmt->execute()) {
         header("Location: dashboard.php");
@@ -71,23 +94,51 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
             <span>Rp <?= number_format($active_shift['saldo_awal'], 0, ',', '.') ?></span>
         </div>
         <div class="summary-row">
-            <span>Total Masuk (Tunai/DP)</span>
-            <span>Rp <?= number_format($active_shift['saldo_akhir_sistem'], 0, ',', '.') ?></span>
+            <span style="color: #64748b; font-size: 13px;">↳ Penjualan Tunai/DP</span>
+            <span style="color: #64748b;">Rp <?= number_format($tunai_langsung, 0, ',', '.') ?></span>
+        </div>
+        <div class="summary-row">
+            <span style="color: #64748b; font-size: 13px;">↳ Pelunasan Cicilan Piutang</span>
+            <span style="color: #64748b;">Rp <?= number_format($piutang_masuk, 0, ',', '.') ?></span>
         </div>
         <div class="summary-row" style="border-top: 1px solid #cbd5e1; padding-top: 12px;">
             <span>TOTAL UANG SEHARUSNYA</span>
-            <span>Rp <?= number_format($active_shift['saldo_awal'] + $active_shift['saldo_akhir_sistem'], 0, ',', '.') ?></span>
+            <span>Rp <?= number_format($total_seharusnya, 0, ',', '.') ?></span>
         </div>
     </div>
 
     <form method="POST">
       <div class="form-group">
         <label>💵 NILAI UANG FISIK DI LACI (INPUT MANUAL)</label>
-        <input type="number" name="saldo_fisik" placeholder="0" required autofocus>
+        <input type="text" id="saldo_fisik_display" placeholder="Contoh: 50.000" required autofocus>
+        <input type="hidden" name="saldo_fisik" id="saldo_fisik_real">
       </div>
       <button type="submit" name="tutup_shift" class="btn-close" onclick="return confirm('Apakah Bapak yakin ingin mengakhiri shift ini?')">🛑 TUTUP KASIR & KELUAR</button>
       <a href="dashboard.php" style="display: block; text-align: center; margin-top: 15px; color: #64748b; font-size: 13px; text-decoration: none;">Batal, Kembali ke Dashboard</a>
     </form>
   </div>
+
+  <script>
+    const displayInput = document.getElementById('saldo_fisik_display');
+    const realInput = document.getElementById('saldo_fisik_real');
+
+    displayInput.addEventListener('input', function(e) {
+        let value = this.value.replace(/[^\d]/g, "");
+        if (value === "") {
+            this.value = "";
+            realInput.value = "";
+            return;
+        }
+        
+        realInput.value = value;
+        this.value = "Rp " + new Intl.NumberFormat('id-ID').format(value);
+    });
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!realInput.value || realInput.value === "0") {
+            realInput.value = "0";
+        }
+    });
+  </script>
 </body>
 </html>

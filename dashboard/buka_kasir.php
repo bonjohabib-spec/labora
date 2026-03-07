@@ -60,7 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buka_shift'])) {
     <form method="POST">
       <div class="form-group">
         <label>Saldo Awal (Modal Tunai)</label>
-        <input type="number" name="saldo_awal" placeholder="Contoh: 50000" required autofocus>
+        <input type="text" id="saldo_awal_display" placeholder="Contoh: 50.000" required autofocus>
+        <input type="hidden" name="saldo_awal" id="saldo_awal_real">
       </div>
       <button type="submit" name="buka_shift" class="btn-block">🚀 Mulai Shift Sekarang</button>
     </form>
@@ -69,5 +70,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buka_shift'])) {
         <a href="../auth/logout.php" style="color: #ef4444; font-size: 13px; text-decoration: none; font-weight: 600;">Keluar / Ganti Akun</a>
     </div>
   </div>
+
+  <script>
+    const displayInput = document.getElementById('saldo_awal_display');
+    const realInput = document.getElementById('saldo_awal_real');
+
+    displayInput.addEventListener('input', function(e) {
+        let value = this.value.replace(/[^\d]/g, "");
+        if (value === "") {
+            this.value = "";
+            realInput.value = "";
+            return;
+        }
+        
+        realInput.value = value;
+        this.value = "Rp " + new Intl.NumberFormat('id-ID').format(value);
+    });
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!realInput.value || realInput.value === "0") {
+            // Jika kosong, pastikan terisi 0
+            realInput.value = "0";
+        }
+    });
+  </script>
 </body>
 </html>

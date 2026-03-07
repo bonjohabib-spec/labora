@@ -13,9 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die("Jumlah tidak valid!");
     }
 
-    // 🔍 Ambil data varian (id_barang, harga_jual, stok, nama_barang, warna, ukuran)
+    // 🔍 Ambil data varian (id_barang, harga_jual, harga_beli, stok, nama_barang, warna, ukuran)
     $qVar = $conn->prepare("
-        SELECT v.id_varian, v.id_barang, v.stok, v.harga_jual, 
+        SELECT v.id_varian, v.id_barang, v.stok, v.harga_jual, v.harga_beli,
                v.warna, v.ukuran, b.nama_barang
         FROM barang_varian v
         JOIN barang b ON v.id_barang = b.id_barang
@@ -30,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $id_barang  = $varian['id_barang'];
     $harga_jual = floatval($varian['harga_jual']);
+    $harga_beli = floatval($varian['harga_beli']);
 
     // ✅ Jika harga jual kosong di DB, ambil dari input form
     if ($harga_jual <= 0 && !empty($_POST['harga_jual'])) {
@@ -70,12 +71,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // ➕ Insert baru jika belum ada
             $sql = $conn->prepare("
                 INSERT INTO detail_penjualan 
-                (id_penjualan, id_barang, id_varian, qty, harga_jual, subtotal, status, warna, ukuran)
-                VALUES (?, ?, ?, ?, ?, ?, 'aktif', ?, ?)
+                (id_penjualan, id_barang, id_varian, qty, harga_jual, harga_beli, subtotal, status, warna, ukuran)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'aktif', ?, ?)
             ");
-            $sql->bind_param("iiiiddss", 
+            $sql->bind_param("iiiidddss", 
                 $id_penjualan, $id_barang, $id_varian, 
-                $qty, $harga_jual, $subtotal, $warna, $ukuran
+                $qty, $harga_jual, $harga_beli, $subtotal, $warna, $ukuran
             );
             $sql->execute();
         }

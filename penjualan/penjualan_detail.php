@@ -1,6 +1,10 @@
 <?php
 include __DIR__ . '/../includes/koneksi.php';
+include __DIR__ . '/../includes/auth_shift.php';
 if (session_status() == PHP_SESSION_NONE) session_start();
+
+$kasir = $_SESSION['username'] ?? 'owner';
+$active_shift = checkShift($conn, $kasir); // Wajib shift aktif untuk akses detail (buat jaga-jaga bayar piutang)
 
 // Pastikan ID valid
 if (!isset($_GET['id'])) die("ID tidak valid");
@@ -10,6 +14,42 @@ $id = intval($_GET['id']);
 $q = $conn->query("SELECT * FROM penjualan WHERE id_penjualan = $id");
 $penjualan = $q->fetch_assoc();
 if (!$penjualan) die("Transaksi tidak ditemukan.");
+
+// ======================
+// Proses Bayar Piutang (POST)
+// ======================
+if (isset($_POST['bayar_piutang'])) {
+    $nominal = floatval($_POST['nominal_bayar']);
+    if ($nominal <= 0) {
+        $err = "Nominal bayar tidak valid.";
+    } elseif ($nominal > $penjualan['sisa_piutang']) {
+        $err = "Nominal bayar melebihi sisa hutang (Sisa: Rp " . number_format($penjualan['sisa_piutang'], 0, ',', '.') . ")";
+    } else {
+        $conn->begin_transaction();
+        try {
+            // 1. Catat ke riwayat pembayaran_piutang
+            $stmtPay = $conn->prepare("INSERT INTO pembayaran_piutang (id_penjualan, tanggal, nominal, id_shift) VALUES (?, NOW(), ?, ?)");
+            $id_shift = isset($active_shift['id_shift']) ? $active_shift['id_shift'] : null;
+            $stmtPay->bind_param("idi", $id, $nominal, $id_shift);
+            $stmtPay->execute();
+
+            // 2. Update sisa_piutang di tabel penjualan
+            $conn->query("UPDATE penjualan SET sisa_piutang = sisa_piutang - $nominal, jumlah_bayar = jumlah_bayar + $nominal WHERE id_penjualan = $id");
+
+            // 3. Update Saldo Kas Shift
+            if ($id_shift) {
+                $conn->query("UPDATE kas_shift SET saldo_akhir_sistem = saldo_akhir_sistem + $nominal WHERE id_shift = $id_shift");
+            }
+
+            $conn->commit();
+            header("Location: penjualan_detail.php?id=$id&msg=sukses_bayar");
+            exit;
+        } catch (Exception $e) {
+            $conn->rollback();
+            $err = "Gagal memproses pembayaran: " . $e->getMessage();
+        }
+    }
+}
 
 // ======================
 // Proses edit item (POST)
@@ -62,10 +102,12 @@ if (isset($_POST['update_item'])) {
                 $up->bind_param("iidi", $qty_baru, $harga_baru, $subtotal_baru, $id_detail);
                 $up->execute();
                 
-                // Update Total di Penjualan Utama
+                // Update Total & Sisa Piutang di Penjualan Utama
                 $upTotal = $conn->prepare("UPDATE penjualan SET total = (SELECT SUM(subtotal) FROM detail_penjualan WHERE id_penjualan = ?) WHERE id_penjualan = ?");
                 $upTotal->bind_param("ii", $id, $id);
                 $upTotal->execute();
+
+                $conn->query("UPDATE penjualan SET sisa_piutang = GREATEST(0, total - jumlah_bayar) WHERE id_penjualan = $id");
 
                 $conn->commit();
                 header("Location: penjualan_detail.php?id=$id");
@@ -100,10 +142,12 @@ if (isset($_GET['hapus_item'])) {
             $del->bind_param("i", $id_detail);
             $del->execute();
             
-            // Update Total di Penjualan Utama
+            // Update Total & Sisa Piutang di Penjualan Utama
             $upTotal = $conn->prepare("UPDATE penjualan SET total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = ?) WHERE id_penjualan = ?");
             $upTotal->bind_param("ii", $id, $id);
             $upTotal->execute();
+
+            $conn->query("UPDATE penjualan SET sisa_piutang = GREATEST(0, total - jumlah_bayar) WHERE id_penjualan = $id");
 
             $conn->commit();
             header("Location: penjualan_detail.php?id=$id");
@@ -224,6 +268,54 @@ $d = $conn->query("
             <?php endif; ?>
           </div>
 
+          <?php if ($penjualan['sisa_piutang'] > 0): ?>
+          <div class="debt-payment-box" style="margin-top: 30px; background: #fff7ed; border: 1px solid #fdba74; padding: 20px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 style="margin: 0; color: #9a3412;">💳 Pelunasan Piutang</h4>
+                <div class="badge-debt" style="background: #ea580c; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 14px;">
+                    SISA HUTANG: Rp <?= number_format($penjualan['sisa_piutang'], 0, ',', '.') ?>
+                </div>
+            </div>
+            
+            <form method="POST" style="display: flex; gap: 10px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #9a3412; margin-bottom: 5px;">NOMINAL BAYAR (RP)</label>
+                    <input type="text" id="nominal_bayar_display" placeholder="Contoh: 50.000" style="width: 100%; padding: 10px; border: 1px solid #fdba74; border-radius: 8px; font-size: 16px; font-weight: 700;" required>
+                    <input type="hidden" name="nominal_bayar" id="nominal_bayar_real">
+                </div>
+                <button type="submit" name="bayar_piutang" class="btn" style="height: 45px; padding: 0 25px; background: #ea580c; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">BAYAR SEKARANG</button>
+            </form>
+            <p style="font-size: 11px; color: #9a3412; margin-top: 10px; opacity: 0.8;">* Pembayaran akan otomatis masuk ke laporan kas shift hari ini.</p>
+          </div>
+          <?php endif; ?>
+
+          <?php 
+          $qHist = $conn->query("SELECT * FROM pembayaran_piutang WHERE id_penjualan = $id ORDER BY tanggal ASC");
+          if ($qHist->num_rows > 0): 
+          ?>
+          <div style="margin-top: 30px;">
+            <h4 style="margin-bottom: 15px; color: #475569;">📜 Riwayat Pembayaran / Cicilan</h4>
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 1px solid #e2e8f0; text-align: left;">
+                        <th style="padding: 10px;">Waktu</th>
+                        <th style="padding: 10px;">Nominal</th>
+                        <th style="padding: 10px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while($h = $qHist->fetch_assoc()): ?>
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 10px; color: #64748b;"><?= date('d M Y, H:i', strtotime($h['tanggal'])) ?></td>
+                        <td style="padding: 10px;"><strong>Rp <?= number_format($h['nominal'], 0, ',', '.') ?></strong></td>
+                        <td style="padding: 10px;"><span style="color: #10b981; font-weight: 700;">DITERIMA ✅</span></td>
+                    </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+          </div>
+          <?php endif; ?>
+
           <div style="margin-top: 25px; display: flex; justify-content: space-between;">
             <a href="penjualan.php" class="btn btn-secondary">← Kembali ke Daftar</a>
             <a href="penjualan_finish.php?id=<?= $penjualan['id_penjualan'] ?>" class="btn btn-print">🧾 Cetak Struk Belanja</a>
@@ -236,6 +328,29 @@ $d = $conn->query("
 </div>
 
 <script>
+const nDisp = document.getElementById('nominal_bayar_display');
+const nReal = document.getElementById('nominal_bayar_real');
+
+if (nDisp) {
+    nDisp.addEventListener('input', function(e) {
+        let value = this.value.replace(/[^\d]/g, "");
+        if (value === "") {
+            this.value = "";
+            nReal.value = "";
+            return;
+        }
+        nReal.value = value;
+        this.value = "Rp " + new Intl.NumberFormat('id-ID').format(value);
+    });
+
+    // Set nilai awal (dari PHP)
+    let initialVal = "<?= $penjualan['sisa_piutang'] ?>";
+    if (initialVal > 0) {
+        nReal.value = initialVal;
+        nDisp.value = "Rp " + new Intl.NumberFormat('id-ID').format(initialVal);
+    }
+}
+
 function formatRp(num) {
     return 'Rp ' + num.toLocaleString('id-ID');
 }

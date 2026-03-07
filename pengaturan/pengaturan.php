@@ -128,9 +128,9 @@ if (isset($_GET['hapus_user']) && $_SESSION['user_role'] === 'owner') {
             <?php include __DIR__ . '/../includes/header.php'; ?>
             
             <div class="page-content">
-                <div style="margin-bottom: 25px;">
+                <div class="welcome-header">
                     <h1>⚙️ Pengaturan Sistem</h1>
-                    <p style="color: #64748b;">Kelola identitas toko dan keamanan akun Anda di sini.</p>
+                    <p>Kelola identitas toko dan keamanan akun Anda di sini.</p>
                 </div>
 
                 <?php if ($success): ?>

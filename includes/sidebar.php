@@ -20,7 +20,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <li class="<?= $currentPage == 'dashboard.php' ? 'active' : '' ?>">
       <a href="<?= $base_url ?>/dashboard/dashboard.php">
         <i class="fas fa-th-large"></i>
-        <span class="link-text">Beranda</span>
+        <span class="link-text">Dashboard</span>
       </a>
     </li>
     

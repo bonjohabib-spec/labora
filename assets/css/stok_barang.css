@@ -140,6 +140,9 @@ tbody tr:hover {
   background: #f8fafc;
 }
 
+.btn-action.edit:hover { background: #eff6ff; color: #3b82f6; }
+.btn-action.delete:hover { background: #fef2f2; color: #ef4444; }
+
 /* Badges */
 .badge {
   padding: 3px 10px;

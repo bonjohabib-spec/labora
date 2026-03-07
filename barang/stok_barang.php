@@ -29,14 +29,54 @@ if (isset($_GET['action']) && $_GET['action'] == 'status' && isset($_GET['id']))
     }
 }
 
+// 1b. LOGIKA HAPUS BARANG (Hanya jika belum pernah dijual)
+if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) {
+    $id_varian = intval($_GET['id']);
+    
+    // Cek apakah varian ini sudah pernah dipakai di transaksi
+    $cekTransaksi = $conn->query("SELECT COUNT(*) AS total FROM detail_penjualan WHERE id_varian = $id_varian");
+    $sudahDijual = $cekTransaksi->fetch_assoc()['total'] > 0;
+    
+    if ($sudahDijual) {
+        echo "<script>alert('Barang ini sudah pernah dijual, tidak bisa dihapus!'); window.location='stok_barang.php';</script>";
+        exit;
+    }
+    
+    // Hapus varian
+    $conn->begin_transaction();
+    try {
+        // Ambil id_barang terlebih dahulu
+        $getBarang = $conn->query("SELECT id_barang FROM barang_varian WHERE id_varian = $id_varian")->fetch_assoc();
+        $id_barang = $getBarang['id_barang'];
+        
+        // Hapus varian
+        $conn->query("DELETE FROM barang_varian WHERE id_varian = $id_varian");
+        
+        // Jika barang induk tidak punya varian lagi, hapus juga
+        $sisaVarian = $conn->query("SELECT COUNT(*) AS sisa FROM barang_varian WHERE id_barang = $id_barang")->fetch_assoc()['sisa'];
+        if ($sisaVarian == 0) {
+            $conn->query("DELETE FROM barang WHERE id_barang = $id_barang");
+        }
+        
+        $conn->commit();
+        echo "<script>alert('Barang berhasil dihapus!'); window.location='stok_barang.php';</script>";
+        exit;
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo "<script>alert('Gagal menghapus: " . $e->getMessage() . "'); window.location='stok_barang.php';</script>";
+        exit;
+    }
+}
+
 // 2. FILTER TAB (Default: aktif)
 $view_status = isset($_GET['view']) && $_GET['view'] == 'non-aktif' ? 'non-aktif' : 'aktif';
 
-// Gabungkan barang dan varian dengan filter status
+// Gabungkan barang dan varian dengan filter status + cek apakah sudah pernah dijual
 $sql = "
-  SELECT b.nama_barang, v.id_varian, v.warna, v.ukuran, 
+  SELECT b.id_barang, b.nama_barang, v.id_varian, v.warna, v.ukuran, 
          v.harga_beli, v.harga_jual, v.stok, v.status as varian_status,
-         b.stok_min, b.stok_max
+         b.stok_min, b.stok_max,
+         (SELECT COUNT(*) FROM detail_penjualan dp WHERE dp.id_varian = v.id_varian) AS total_terjual
   FROM barang b
   JOIN barang_varian v ON b.id_barang = v.id_barang
   WHERE v.status = '$view_status'
@@ -148,6 +188,17 @@ $result = $conn->query($sql);
                              class='btn-action enable' 
                              onclick=\"return confirm('Aktifkan kembali?')\"
                              title='Aktifkan Kembali'>🔄</a>";
+                  }
+                  
+                  // Tombol Edit & Hapus hanya untuk barang yang BELUM pernah dijual
+                  if ($row['total_terjual'] == 0) {
+                    echo " <a href='edit_barang.php?id={$row['id_varian']}' 
+                              class='btn-action edit' 
+                              title='Edit Barang'>✏️</a>";
+                    echo " <a href='stok_barang.php?action=hapus&id={$row['id_varian']}' 
+                              class='btn-action delete' 
+                              onclick=\"return confirm('Hapus barang ini secara permanen?')\"
+                              title='Hapus Barang'>🗑️</a>";
                   }
                   
                   echo "</td>

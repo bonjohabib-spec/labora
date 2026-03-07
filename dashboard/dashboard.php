@@ -9,32 +9,53 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'owner') {
 }
 
 $today = date('Y-m-d');
+$yesterday = date('Y-m-d', strtotime('-1 day'));
 
-// Query data
-$qOmzet = mysqli_query($conn, "SELECT SUM(total) AS omzet FROM penjualan WHERE DATE(tanggal)='$today'");
+// 1. Data Hari Ini
+$qOmzet = mysqli_query($conn, "SELECT SUM(total) AS omzet FROM penjualan WHERE DATE(tanggal)='$today' AND status='selesai'");
 $omzet = mysqli_fetch_assoc($qOmzet)['omzet'] ?? 0;
 
-$qKeuntungan = mysqli_query($conn, "SELECT SUM(keuntungan) AS untung FROM penjualan WHERE DATE(tanggal)='$today'");
+$qKeuntungan = mysqli_query($conn, "SELECT SUM(keuntungan) AS untung FROM penjualan WHERE DATE(tanggal)='$today' AND status='selesai'");
 $keuntungan = mysqli_fetch_assoc($qKeuntungan)['untung'] ?? 0;
 
-$qTransaksi = mysqli_query($conn, "SELECT COUNT(*) AS trx FROM penjualan WHERE DATE(tanggal)='$today'");
+$qTransaksi = mysqli_query($conn, "SELECT COUNT(*) AS trx FROM penjualan WHERE DATE(tanggal)='$today' AND status='selesai'");
 $transaksi = mysqli_fetch_assoc($qTransaksi)['trx'] ?? 0;
 
-// ================================
-// Barang terlaris + warna & ukuran
-// ================================
+// 2. Data Kemarin (Untuk Perbandingan)
+$qOmzetYest = mysqli_query($conn, "SELECT SUM(total) AS omzet FROM penjualan WHERE DATE(tanggal)='$yesterday' AND status='selesai'");
+$omzetYest = mysqli_fetch_assoc($qOmzetYest)['omzet'] ?? 0;
+
+$qKeuntunganYest = mysqli_query($conn, "SELECT SUM(keuntungan) AS untung FROM penjualan WHERE DATE(tanggal)='$yesterday' AND status='selesai'");
+$keuntunganYest = mysqli_fetch_assoc($qKeuntunganYest)['untung'] ?? 0;
+
+// Hitung Persentase Pertumbuhan
+function getGrowth($current, $past) {
+    if ($past <= 0) return $current > 0 ? 100 : 0;
+    return (($current - $past) / $past) * 100;
+}
+
+$growthOmzet = getGrowth($omzet, $omzetYest);
+$growthUntung = getGrowth($keuntungan, $keuntunganYest);
+
+// 3. Leaderboard 7 Hari Terakhir
 $qBarang = mysqli_query($conn, "
     SELECT b.nama_barang, v.warna, v.ukuran, SUM(dp.qty) AS terjual
     FROM detail_penjualan dp
     JOIN barang_varian v ON dp.id_varian = v.id_varian
     JOIN barang b ON v.id_barang = b.id_barang
-    GROUP BY b.nama_barang, v.warna, v.ukuran
+    JOIN penjualan p ON dp.id_penjualan = p.id_penjualan
+    WHERE p.status='selesai' AND DATE(p.tanggal) BETWEEN DATE_SUB('$today', INTERVAL 7 DAY) AND '$today'
+    GROUP BY v.id_varian
     ORDER BY terjual DESC
     LIMIT 5
 ");
 
-$qMenipis = mysqli_query($conn, "SELECT nama_barang FROM barang WHERE stok < stok_min");
-$qLebih = mysqli_query($conn, "SELECT nama_barang FROM barang WHERE stok > stok_max");
+// 4. Pengeluaran Terbaru
+$qPengeluaran = mysqli_query($conn, "SELECT * FROM pengeluaran ORDER BY tanggal DESC LIMIT 5");
+
+// 5. Notifikasi Stok
+$qHabis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran FROM barang_varian v JOIN barang b ON v.id_barang = b.id_barang WHERE v.stok <= 0 AND v.status='aktif'");
+$qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok FROM barang_varian v JOIN barang b ON v.id_barang = b.id_barang WHERE v.stok > 0 AND v.stok <= b.stok_min AND v.status='aktif'");
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -60,25 +81,60 @@ $qLebih = mysqli_query($conn, "SELECT nama_barang FROM barang WHERE stok > stok_
         <p>Inilah ringkasan aktivitas toko Anda hari ini, <?= date('d M Y') ?>.</p>
       </div>
 
+      <!-- Quick Action Bar -->
+      <div class="quick-actions">
+        <a href="../penjualan/penjualan_tambah.php" class="action-btn primary">
+          <span class="btn-icon">🛒</span>
+          <div class="btn-text">
+            <strong>Kasir Baru</strong>
+            <small>Buat transaksi penjualan</small>
+          </div>
+        </a>
+        <a href="../barang/stok_barang.php" class="action-btn secondary">
+          <span class="btn-icon">📦</span>
+          <div class="btn-text">
+            <strong>Tambah Stok</strong>
+            <small>Input barang masuk</small>
+          </div>
+        </a>
+        <a href="../pengeluaran/tambah_pengeluaran.php" class="action-btn warning">
+          <span class="btn-icon">💸</span>
+          <div class="btn-text">
+            <strong>Catat Biaya</strong>
+            <small>Input pengeluaran kas</small>
+          </div>
+        </a>
+      </div>
+
       <div class="stat-cards">
         <div class="stat-card">
           <div class="stat-icon purple">💰</div>
           <div class="stat-info">
             <label>Omzet Hari Ini</label>
-            <h3>Rp<?= number_format($omzet, 0, ',', '.') ?></h3>
+            <div class="val-flex">
+              <h3>Rp<?= number_format($omzet, 0, ',', '.') ?></h3>
+              <span class="growth-tag <?= $growthOmzet >= 0 ? 'up' : 'down' ?>">
+                <?= $growthOmzet >= 0 ? '↑' : '↓' ?> <?= abs(round($growthOmzet)) ?>%
+              </span>
+            </div>
           </div>
         </div>
         
         <div class="stat-card">
           <div class="stat-icon emerald">📈</div>
           <div class="stat-info">
-            <label>Keuntungan Hari Ini</label>
-            <h3 style="color: #059669;">Rp<?= number_format($keuntungan, 0, ',', '.') ?></h3>
+            <label>Laba Bersih Hari Ini</label>
+            <div class="val-flex">
+              <h3 style="color: #059669;">Rp<?= number_format($keuntungan, 0, ',', '.') ?></h3>
+              <span class="growth-tag <?= $growthUntung >= 0 ? 'up' : 'down' ?>">
+                <?= $growthUntung >= 0 ? '↑' : '↓' ?> <?= abs(round($growthUntung)) ?>%
+              </span>
+            </div>
           </div>
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon blue">🛒</div>
+          <div class="stat-icon blue">🛍️</div>
           <div class="stat-info">
             <label>Total Transaksi</label>
             <h3><?= number_format($transaksi, 0, ',', '.') ?> <small>Trx</small></h3>
@@ -120,36 +176,56 @@ $qLebih = mysqli_query($conn, "SELECT nama_barang FROM barang WHERE stok > stok_
         <!-- NOTIFIKASI STOK -->
         <div class="dashboard-panel">
           <div class="panel-header">
-            <h3>⚠️ Notifikasi Inventori</h3>
+            <h3>⚠️ Status Stok & Pengeluaran</h3>
           </div>
           <div class="notif-container">
+            <!-- PENGELUARAN TERAKHIR -->
+             <div class="recent-expenses" style="margin-bottom: 20px;">
+               <label style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 10px; display: block;">💸 Biaya Terakhir</label>
+               <?php if (mysqli_num_rows($qPengeluaran) > 0): ?>
+                <div class="expense-list">
+                  <?php while ($xp = mysqli_fetch_assoc($qPengeluaran)): ?>
+                    <div class="expense-item" style="display:flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f8fafc;">
+                      <div>
+                        <div style="font-size: 13px; font-weight: 600; color: #1e293b;"><?= htmlspecialchars($xp['deskripsi']) ?></div>
+                        <div style="font-size: 10px; color: #94a3b8;"><?= date('d M', strtotime($xp['tanggal'])) ?> • <?= htmlspecialchars($xp['kategori']) ?></div>
+                      </div>
+                      <div style="font-size: 13px; font-weight: 700; color: #ef4444;">- Rp<?= number_format($xp['nominal'], 0, ',', '.') ?></div>
+                    </div>
+                  <?php endwhile; ?>
+                </div>
+               <?php else: ?>
+                <p style="font-size: 12px; color: #94a3b8; font-style: italic;">Belum ada catatan biaya.</p>
+               <?php endif; ?>
+             </div>
+
             <div class="notif-box danger">
-              <div class="notif-box-icon">🚨</div>
+              <div class="notif-box-icon">🛑</div>
               <div class="notif-box-content">
-                <strong>Stok Menipis</strong>
+                <strong>Stok Habis (Sangat Penting)</strong>
                 <ul>
-                  <?php if (mysqli_num_rows($qMenipis) > 0): ?>
-                    <?php while ($m = mysqli_fetch_assoc($qMenipis)): ?>
-                      <li><?= htmlspecialchars($m['nama_barang']) ?></li>
+                  <?php if (mysqli_num_rows($qHabis) > 0): ?>
+                    <?php while ($h = mysqli_fetch_assoc($qHabis)): ?>
+                      <li><?= htmlspecialchars($h['nama_barang']) ?> (<?= htmlspecialchars($h['warna']) ?>-<?= htmlspecialchars($h['ukuran']) ?>)</li>
                     <?php endwhile; ?>
                   <?php else: ?>
-                    <li class="empty-notif">Semua stok barang tercukupi.</li>
+                    <li class="empty-notif">Tidak ada stok yang kosong total.</li>
                   <?php endif; ?>
                 </ul>
               </div>
             </div>
 
-            <div class="notif-box success">
-              <div class="notif-box-icon">📦</div>
+            <div class="notif-box warning">
+              <div class="notif-box-icon">⚠️</div>
               <div class="notif-box-content">
-                <strong>Stok Melebihi Batas</strong>
+                <strong>Stok Menipis</strong>
                 <ul>
-                  <?php if (mysqli_num_rows($qLebih) > 0): ?>
-                    <?php while ($l = mysqli_fetch_assoc($qLebih)): ?>
-                      <li><?= htmlspecialchars($l['nama_barang']) ?></li>
+                  <?php if (mysqli_num_rows($qMenipis) > 0): ?>
+                    <?php while ($m = mysqli_fetch_assoc($qMenipis)): ?>
+                      <li><?= htmlspecialchars($m['nama_barang']) ?> (<?= $m['warna'] ?>-<?= $m['ukuran'] ?>) - Sisa <strong><?= $m['stok'] ?></strong></li>
                     <?php endwhile; ?>
                   <?php else: ?>
-                    <li class="empty-notif">Tidak ada stok berlebih.</li>
+                    <li class="empty-notif">Stok varian lainnya masih aman.</li>
                   <?php endif; ?>
                 </ul>
               </div>

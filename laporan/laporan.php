@@ -67,9 +67,9 @@ $laba_bersih = $total_omzet - $total_pengeluaran;
       <?php include __DIR__ . '/../includes/header.php'; ?>
       
       <div class="page-content">
-        <div style="margin-bottom: 25px;">
+        <div class="welcome-header">
             <h1>📊 Laporan Keuangan</h1>
-            <p style="color: #64748b;">Pantau omzet, pengeluaran, dan laba bersih toko Anda.</p>
+            <p>Pantau omzet, pengeluaran, dan laba bersih toko Anda.</p>
         </div>
 
         <form action="" method="GET" class="filter-form">
@@ -84,30 +84,30 @@ $laba_bersih = $total_omzet - $total_pengeluaran;
           <button type="submit">Filter Laporan</button>
         </form>
 
-        <div class="summary-box">
-          <h3>💰 Ringkasan Laba/Rugi</h3>
-          <table class="table-summary">
-            <thead>
-              <tr>
-                <th>Keterangan</th>
-                <th>Nominal (Rp)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="txt-left">Total Omzet (Penjualan Selesai)</td>
-                <td class="txt-right" style="font-weight:600;"><?= number_format($total_omzet, 0, ',', '.') ?></td>
-              </tr>
-              <tr>
-                <td class="txt-left">Total Pengeluaran</td>
-                <td class="txt-right" style="font-weight:600; color:#ef4444;"><?= number_format($total_pengeluaran, 0, ',', '.') ?></td>
-              </tr>
-              <tr class="row-laba">
-                <td class="txt-left" style="font-weight:bold;">Laba Bersih</td>
-                <td class="txt-right" style="font-weight:bold; color:#059669; font-size:1.2em;">Rp <?= number_format($laba_bersih, 0, ',', '.') ?></td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="stat-cards">
+          <div class="stat-card">
+            <div class="stat-icon purple">💰</div>
+            <div class="stat-info">
+              <label>Total Omzet</label>
+              <h3>Rp<?= number_format($total_omzet, 0, ',', '.') ?></h3>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon danger">💸</div>
+            <div class="stat-info">
+              <label>Total Pengeluaran</label>
+              <h3 style="color: #ef4444;">Rp<?= number_format($total_pengeluaran, 0, ',', '.') ?></h3>
+            </div>
+          </div>
+
+          <div class="stat-card laba">
+            <div class="stat-icon emerald">📈</div>
+            <div class="stat-info">
+              <label>Laba Bersih</label>
+              <h3 style="color: #059669;">Rp<?= number_format($laba_bersih, 0, ',', '.') ?></h3>
+            </div>
+          </div>
         </div>
 
         <div class="report-grid">

@@ -40,7 +40,7 @@ $query_top_customers = "SELECT pelanggan, COUNT(*) as transaksi, SUM(total) as t
                         WHERE status='selesai' 
                         AND DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'
                         GROUP BY pelanggan 
-                        ORDER BY total_belanja DESC LIMIT 5";
+                        ORDER BY transaksi DESC LIMIT 5";
 $res_customers = mysqli_query($conn, $query_top_customers);
 
 // 3. Riset: Barang Terlaris
@@ -51,14 +51,15 @@ $query_top_items = "SELECT b.nama_barang, SUM(dp.qty) as total_qty, SUM(dp.subto
                     AND DATE(dp.id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'))
                     GROUP BY dp.id_barang
                     ORDER BY total_qty DESC LIMIT 5";
-// Koreksi query top items agar filter tanggalnya benar
-$query_top_items = "SELECT b.nama_barang, SUM(dp.qty) as total_qty, SUM(dp.subtotal) as total_omzet
+// 3. Riset: Barang Terlaris (Detail per Varian)
+$query_top_items = "SELECT b.nama_barang, v.warna, v.ukuran, SUM(dp.qty) as total_qty, SUM(dp.subtotal) as total_omzet
                     FROM detail_penjualan dp
-                    JOIN barang b ON dp.id_barang = b.id_barang
+                    JOIN barang_varian v ON dp.id_varian = v.id_varian
+                    JOIN barang b ON v.id_barang = b.id_barang
                     JOIN penjualan p ON dp.id_penjualan = p.id_penjualan
                     WHERE p.status='selesai'
                     AND DATE(p.tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'
-                    GROUP BY dp.id_barang
+                    GROUP BY dp.id_varian
                     ORDER BY total_qty DESC LIMIT 5";
 $res_items = mysqli_query($conn, $query_top_items);
 
@@ -142,13 +143,19 @@ $res_items = mysqli_query($conn, $query_top_items);
               </tr>
             </thead>
             <tbody>
-              <?php $rank = 1; while($i = mysqli_fetch_assoc($res_items)): ?>
-              <tr>
-                <td><span class="rank-badge <?= $rank==1?'rank-1':'' ?>"><?= $rank++ ?></span> <?= htmlspecialchars($i['nama_barang']) ?></td>
-                <td style="text-align: center;"><?= $i['total_qty'] ?> unit</td>
-                <td style="text-align: right; font-weight: 600;">Rp <?= number_format($i['total_omzet'], 0, ',', '.') ?></td>
-              </tr>
-              <?php endwhile; ?>
+               <?php $rank = 1; while($i = mysqli_fetch_assoc($res_items)): ?>
+               <tr>
+                 <td>
+                   <span class="rank-badge <?= $rank==1?'rank-1':'' ?>"><?= $rank++ ?></span> 
+                   <strong><?= htmlspecialchars($i['nama_barang']) ?></strong>
+                   <div style="font-size: 10px; color: #64748b; margin-left: 22px; margin-top: 2px;">
+                     <?= htmlspecialchars($i['warna'] ?: '-') ?> - <?= htmlspecialchars($i['ukuran'] ?: '-') ?>
+                   </div>
+                 </td>
+                 <td style="text-align: center;"><?= $i['total_qty'] ?> unit</td>
+                 <td style="text-align: right; font-weight: 600;">Rp <?= number_format($i['total_omzet'], 0, ',', '.') ?></td>
+               </tr>
+               <?php endwhile; ?>
               <?php if (mysqli_num_rows($res_items) == 0): ?>
               <tr><td colspan="3" style="text-align: center; color: #94a3b8; padding: 20px;">Belum ada data.</td></tr>
               <?php endif; ?>

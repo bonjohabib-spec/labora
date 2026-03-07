@@ -43,15 +43,21 @@ $query_top_customers = "SELECT pelanggan, COUNT(*) as transaksi, SUM(total) as t
                         ORDER BY transaksi DESC LIMIT 5";
 $res_customers = mysqli_query($conn, $query_top_customers);
 
-// 3. Riset: Barang Terlaris
-$query_top_items = "SELECT b.nama_barang, SUM(dp.qty) as total_qty, SUM(dp.subtotal) as total_omzet
-                    FROM detail_penjualan dp
-                    JOIN barang b ON dp.id_barang = b.id_barang
-                    WHERE dp.status='selesai'
-                    AND DATE(dp.id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'))
-                    GROUP BY dp.id_barang
-                    ORDER BY total_qty DESC LIMIT 5";
-// 3. Riset: Barang Terlaris (Detail per Varian)
+// Paginasi Item (Barang Terlaris)
+$item_per_page = 5;
+$item_page = isset($_GET['item_page']) ? max(1, intval($_GET['item_page'])) : 1;
+$item_offset = ($item_page - 1) * $item_per_page;
+
+$query_item_count = "SELECT COUNT(DISTINCT dp.id_varian) as total
+                     FROM detail_penjualan dp
+                     JOIN penjualan p ON dp.id_penjualan = p.id_penjualan
+                     WHERE p.status='selesai'
+                     AND DATE(p.tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'";
+$res_item_count = mysqli_query($conn, $query_item_count);
+$item_total_data = mysqli_fetch_assoc($res_item_count)['total'];
+$item_total_pages = ceil($item_total_data / $item_per_page);
+
+// 3. Riset: Barang Terlaris (Detail per Varian) dengan Paginasi
 $query_top_items = "SELECT b.nama_barang, v.warna, v.ukuran, SUM(dp.qty) as total_qty, SUM(dp.subtotal) as total_omzet
                     FROM detail_penjualan dp
                     JOIN barang_varian v ON dp.id_varian = v.id_varian
@@ -60,7 +66,7 @@ $query_top_items = "SELECT b.nama_barang, v.warna, v.ukuran, SUM(dp.qty) as tota
                     WHERE p.status='selesai'
                     AND DATE(p.tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'
                     GROUP BY dp.id_varian
-                    ORDER BY total_qty DESC LIMIT 5";
+                    ORDER BY total_qty DESC LIMIT $item_per_page OFFSET $item_offset";
 $res_items = mysqli_query($conn, $query_top_items);
 
 ?>
@@ -161,6 +167,27 @@ $res_items = mysqli_query($conn, $query_top_items);
               <?php endif; ?>
             </tbody>
           </table>
+
+          <?php if ($item_total_pages > 1): ?>
+          <div class="pagination" style="margin-top: 10px; padding: 5px 0;">
+            <span class="page-info" style="font-size: 10px;"><?= $item_page ?> / <?= $item_total_pages ?></span>
+            <div class="page-nav">
+              <?php 
+              // Base URL harus membawa semua parameter agar tidak hilang saat navigasi
+              $item_base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&search=$search&page=$page&item_page=";
+              ?>
+              <?php if ($item_page > 1): ?>
+                <a href="<?= $item_base_url ?>1" class="page-btn" style="width:24px; height:24px; font-size:12px;" title="Awal">«</a>
+                <a href="<?= $item_base_url ?><?= $item_page - 1 ?>" class="page-btn" style="width:24px; height:24px; font-size:12px;" title="Sebelumnya">‹</a>
+              <?php endif; ?>
+
+              <?php if ($item_page < $item_total_pages): ?>
+                <a href="<?= $item_base_url ?><?= $item_page + 1 ?>" class="page-btn" style="width:24px; height:24px; font-size:12px;" title="Selanjutnya">›</a>
+                <a href="<?= $item_base_url ?><?= $item_total_pages ?>" class="page-btn" style="width:24px; height:24px; font-size:12px;" title="Akhir">»</a>
+              <?php endif; ?>
+            </div>
+          </div>
+          <?php endif; ?>
         </div>
       </div>
 
@@ -199,7 +226,7 @@ $res_items = mysqli_query($conn, $query_top_items);
           <span class="page-info">Halaman <?= $page ?> / <?= $total_pages ?></span>
           <div class="page-nav">
             <?php 
-            $base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&search=$search&page=";
+            $base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&search=$search&item_page=$item_page&page=";
             ?>
             <?php if ($page > 1): ?>
               <a href="<?= $base_url ?>1" class="page-btn" title="Awal">«</a>

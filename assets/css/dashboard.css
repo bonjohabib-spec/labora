@@ -16,10 +16,65 @@
   font-size: 13px;
 }
 
-/* ===== STAT CARDS (Mekari Style) ===== */
+/* Quick Actions Bar */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 25px;
+}
+
+.action-btn.danger-light:hover {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.action-btn {
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.06);
+  border-color: #3b82f6;
+}
+
+.btn-icon {
+  width: 42px;
+  height: 42px;
+  font-size: 20px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+.btn-text strong {
+  display: block;
+  font-size: 14px;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.btn-text small {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* Stat Cards & Growth */
 .stat-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 25px;
 }
@@ -27,56 +82,46 @@
 .stat-card {
   background: white;
   padding: 18px 20px;
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: all 0.2s;
   border: 1px solid #f1f5f9;
-  border-left: 4px solid #e2e8f0; /* Default accent */
   position: relative;
 }
 
-.stat-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-}
-
-/* Accent Colors via nth-child */
-.stat-card:nth-child(1) { border-left-color: #8b5cf6; } /* Purple - Omzet */
-.stat-card:nth-child(2) { border-left-color: #059669; } /* Green - Keuntungan */
-.stat-card:nth-child(3) { border-left-color: #3b82f6; } /* Blue - Transaksi */
-
-.stat-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+.val-flex {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
+  align-items: baseline;
+  gap: 8px;
 }
 
-.stat-icon.purple { background: #f5f3ff; }
-.stat-icon.emerald { background: #ecfdf5; }
-.stat-icon.blue { background: #eff6ff; }
+.growth-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.growth-tag.up { background: #ecfdf5; color: #059669; }
+.growth-tag.down { background: #fef2f2; color: #ef4444; }
 
 .stat-info label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   color: #94a3b8;
-  font-weight: 500;
-  margin-bottom: 2px;
+  font-weight: 700;
+  margin-bottom: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
 }
 
 .stat-info h3 {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
-  color: var(--text-main, #1e293b);
+  font-weight: 800;
+  color: #1e293b;
 }
 
 .stat-info h3 small {
@@ -178,11 +223,29 @@
   margin-top: 2px;
 }
 
+/* Recent Expenses */
+.recent-expenses {
+  margin-bottom: 25px;
+  padding-bottom: 10px;
+}
+
+.expense-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.expense-item:last-child {
+  border-bottom: none;
+}
+
 /* Notif Container */
 .notif-container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 16px;
 }
 
 .notif-box {
@@ -190,16 +253,17 @@
   gap: 15px;
   padding: 16px;
   border-radius: 12px;
+  border: 1px solid transparent;
 }
 
 .notif-box.danger {
   background: #fff1f2;
-  border: 1px solid #fecdd3;
+  border-color: #fecdd3;
 }
 
-.notif-box.success {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+.notif-box.warning {
+  background: #fffbeb;
+  border-color: #fef3c7;
 }
 
 .notif-box-icon {
@@ -208,17 +272,17 @@
 
 .notif-box-content strong {
   display: block;
-  font-size: 14px;
-  margin-bottom: 5px;
+  font-size: 13px;
+  margin-bottom: 4px;
 }
 
 .notif-box.danger strong { color: #991b1b; }
-.notif-box.success strong { color: #166534; }
+.notif-box.warning strong { color: #92400e; }
 
 .notif-box-content ul {
   margin: 0;
   padding-left: 18px;
-  font-size: 13px;
+  font-size: 12px;
   color: #4b5563;
 }
 
@@ -235,6 +299,9 @@
 
 @media (max-width: 1024px) {
   .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .quick-actions, .stat-cards {
     grid-template-columns: 1fr;
   }
 }

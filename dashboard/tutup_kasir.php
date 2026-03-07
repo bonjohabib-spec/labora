@@ -1,0 +1,93 @@
+<?php
+include __DIR__ . '/../includes/koneksi.php';
+include __DIR__ . '/../includes/auth_shift.php';
+
+if (session_status() == PHP_SESSION_NONE) session_start();
+$kasir = $_SESSION['username'] ?? 'owner';
+$active_shift = getActiveShift($conn, $kasir);
+
+if (!$active_shift) {
+    header("Location: dashboard.php");
+    exit();
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
+    $saldo_fisik = floatval($_POST['saldo_fisik']);
+    $saldo_sistem = $active_shift['saldo_awal'] + $active_shift['saldo_akhir_sistem'];
+    $selisih = $saldo_fisik - $saldo_sistem;
+    
+    $stmt = $conn->prepare("UPDATE kas_shift SET waktu_tutup = NOW(), saldo_akhir_fisik = ?, selisih = ?, status = 'closed' WHERE id_shift = ?");
+    $stmt->bind_param("ddi", $saldo_fisik, $selisih, $active_shift['id_shift']);
+    
+    if ($stmt->execute()) {
+        header("Location: dashboard.php");
+        exit();
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Tutup Kasir - LABORA</title>
+  <link rel="stylesheet" href="../assets/css/global.css?v=<?= time() ?>">
+  <style>
+    .tutup-box {
+      max-width: 500px;
+      margin: 60px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 25px rgba(0,0,0,0.1);
+    }
+    .tutup-box h1 { font-size: 22px; color: #1e293b; text-align: center; margin-bottom: 25px; }
+    .summary-card {
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+    }
+    .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px dashed #e2e8f0; }
+    .summary-row:last-child { border-bottom: none; font-weight: 700; font-size: 16px; margin-top: 5px; color: #1e293b; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px; }
+    .form-group input { width: 100%; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 18px; font-weight: 800; text-align: center; color: #1e293b; }
+    .btn-close { width: 100%; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 16px; margin-top: 10px; }
+    .btn-close:hover { background: #dc2626; }
+    .info-msg { padding: 12px; background: #eff6ff; color: #3b82f6; border-radius: 8px; font-size: 12px; margin-bottom: 20px; text-align: center; }
+  </style>
+</head>
+<body style="background: #f1f5f9;">
+  <div class="tutup-box">
+    <h1>🏁 Tutup Kasir / Akhiri Shift</h1>
+    
+    <div class="info-msg">
+        Harap hitung seluruh uang fisik (kertas & koin) yang ada di laci kasir saat ini.
+    </div>
+
+    <div class="summary-card">
+        <div class="summary-row">
+            <span>Modal Awal (Receh)</span>
+            <span>Rp <?= number_format($active_shift['saldo_awal'], 0, ',', '.') ?></span>
+        </div>
+        <div class="summary-row">
+            <span>Total Masuk (Tunai/DP)</span>
+            <span>Rp <?= number_format($active_shift['saldo_akhir_sistem'], 0, ',', '.') ?></span>
+        </div>
+        <div class="summary-row" style="border-top: 1px solid #cbd5e1; padding-top: 12px;">
+            <span>TOTAL UANG SEHARUSNYA</span>
+            <span>Rp <?= number_format($active_shift['saldo_awal'] + $active_shift['saldo_akhir_sistem'], 0, ',', '.') ?></span>
+        </div>
+    </div>
+
+    <form method="POST">
+      <div class="form-group">
+        <label>💵 NILAI UANG FISIK DI LACI (INPUT MANUAL)</label>
+        <input type="number" name="saldo_fisik" placeholder="0" required autofocus>
+      </div>
+      <button type="submit" name="tutup_shift" class="btn-close" onclick="return confirm('Apakah Bapak yakin ingin mengakhiri shift ini?')">🛑 TUTUP KASIR & KELUAR</button>
+      <a href="dashboard.php" style="display: block; text-align: center; margin-top: 15px; color: #64748b; font-size: 13px; text-decoration: none;">Batal, Kembali ke Dashboard</a>
+    </form>
+  </div>
+</body>
+</html>

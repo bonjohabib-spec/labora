@@ -1,5 +1,5 @@
-<?php
 include __DIR__ . '/../includes/koneksi.php';
+include __DIR__ . '/../includes/auth_shift.php';
 if (session_status() == PHP_SESSION_NONE) session_start();
 
 if (!isset($_SESSION['username'])) {
@@ -8,6 +8,7 @@ if (!isset($_SESSION['username'])) {
 }
 
 $kasir = $_SESSION['username'];
+$active_shift = checkShift($conn, $kasir); // Wajib buka kasir
 
 $id_penjualan = intval($_GET['id'] ?? 0);
 if (!$id_penjualan) die("ID transaksi tidak ditemukan.");
@@ -163,11 +164,18 @@ $detail = $conn->query("
         <div class="pos-footer">
           <div class="payment-section">
             <div class="payment-row">
-              <label>Nominal Bayar (Rp)</label>
+              <label>Metode Pembayaran</label>
+              <select id="metode_pembayaran" class="input-bayar" style="font-weight: 600;">
+                <option value="tunai">Tunai / Lunas</option>
+                <option value="piutang">Piutang / Bon / Panjar</option>
+              </select>
+            </div>
+            <div class="payment-row" id="row_bayar">
+              <label id="label_bayar">Nominal Bayar (Rp)</label>
               <input type="number" id="bayar_display" class="input-bayar" placeholder="0" onfocus="this.select()">
             </div>
-            <div class="payment-row">
-              <label>Kembalian</label>
+            <div class="payment-row" id="row_kembali">
+              <label id="label_kembali">Kembalian</label>
               <div class="kembali-display" id="kembali_text">Rp 0</div>
             </div>
           </div>
@@ -180,6 +188,7 @@ $detail = $conn->query("
           <form method="POST" action="penjualan_selesai.php" id="formCheckout" onsubmit="return confirmSelesai();">
             <input type="hidden" name="id_penjualan" value="<?= $id_penjualan ?>">
             <input type="hidden" id="hidden_pelanggan" name="pelanggan">
+            <input type="hidden" id="hidden_metode" name="metode_pembayaran" value="tunai">
             <input type="hidden" id="hidden_bayar" name="bayar" value="0">
             <input type="hidden" id="hidden_kembali" name="kembali" value="0">
             <button type="submit" class="btn-checkout">SELESAIKAN TRANSAKSI (F10)</button>
@@ -204,7 +213,18 @@ function confirmSelesai() {
     alert('Keranjang belanja kosong!');
     return false;
   }
+  
+  const metode = $('#metode_pembayaran').val();
+  const bayar = parseFloat($('#bayar_display').val()) || 0;
+  
+  if (metode === 'tunai' && bayar < total) {
+      return confirm('Uang bayar kurang dari total. Lanjutkan sebagai transaksi Tunai?');
+  }
+
   document.getElementById('hidden_pelanggan').value = document.getElementById('pelanggan').value;
+  document.getElementById('hidden_metode').value = metode;
+  document.getElementById('hidden_bayar').value = bayar;
+  
   return confirm('Apakah transaksi ini sudah benar? Stok akan segera berkurang.');
 }
 

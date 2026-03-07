@@ -42,17 +42,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             catat_riwayat_stok($conn, $id_b, $id_v, $qty, 'pengurangan', $ket);
         }
 
-        // 3. Update status transaksi jadi selesai dengan data pembayaran
+        // 3. Hitung Total & Keuntungan (Sudah ada di database saat tambah item, tapi kita pastikan lagi)
+        $qTotal = $conn->prepare("SELECT SUM(subtotal) as total, SUM(qty * (harga_jual - harga_beli)) as untung FROM detail_penjualan WHERE id_penjualan = ?");
+        $qTotal->bind_param("i", $id_penjualan);
+        $qTotal->execute();
+        $resT = $qTotal->get_result()->fetch_assoc();
+        $total_akhir = $resT['total'] ?? 0;
+        $untung_akhir = $resT['untung'] ?? 0;
+
+        // 4. Update data pembayaran
+        $metode  = $_POST['metode_pembayaran'] ?? 'tunai';
         $bayar   = floatval($_POST['bayar'] ?? 0);
-        $kembali = floatval($_POST['kembali'] ?? 0);
+        $kembali = ($metode == 'tunai') ? max(0, $bayar - $total_akhir) : 0;
+        $piutang = ($metode == 'piutang') ? max(0, $total_akhir - $bayar) : 0;
 
         $update = $conn->prepare("
             UPDATE penjualan 
-            SET status = 'selesai', pelanggan = ?, bayar = ?, kembali = ? 
+            SET status = 'selesai', 
+                pelanggan = ?, 
+                total = ?,
+                keuntungan = ?,
+                metode_pembayaran = ?, 
+                jumlah_bayar = ?, 
+                sisa_piutang = ?,
+                bayar = ?, 
+                kembali = ? 
             WHERE id_penjualan = ?
         ");
-        $update->bind_param("sdii", $pelanggan, $bayar, $kembali, $id_penjualan);
+        $update->bind_param("sddsddddi", $pelanggan, $total_akhir, $untung_akhir, $metode, $bayar, $piutang, $bayar, $kembali, $id_penjualan);
         $update->execute();
+
+        // 5. Update Saldo Kas Shift (Jika bayar tunai/DP)
+        if ($bayar > 0) {
+            $updShift = $conn->prepare("UPDATE kas_shift SET saldo_akhir_sistem = saldo_akhir_sistem + ? WHERE status = 'open' AND kasir = (SELECT kasir FROM penjualan WHERE id_penjualan = ?)");
+            $updShift->bind_param("di", $bayar, $id_penjualan);
+            $updShift->execute();
+        }
 
         $conn->commit();
         header("Location: penjualan_finish.php?id=$id_penjualan");

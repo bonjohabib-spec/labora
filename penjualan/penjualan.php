@@ -1,6 +1,7 @@
 <?php
 include __DIR__ . '/../includes/koneksi.php';
 include __DIR__ . '/../includes/riwayatstok.php'; 
+include __DIR__ . '/../includes/auth_shift.php';
 if (session_status() == PHP_SESSION_NONE) session_start();
 
 if (!isset($_SESSION['username'])) {
@@ -9,6 +10,8 @@ if (!isset($_SESSION['username'])) {
 }
 
 $kasir = $_SESSION['username'];
+$active_shift = checkShift($conn, $kasir); // Wajib buka kasir dulu
+$id_shift = $active_shift['id_shift'];
 
 // ==========================
 // 🗑️ HAPUS TRANSAKSI 
@@ -71,11 +74,12 @@ if (isset($_GET['hapus'])) {
 // ==========================
 // ➕ BUAT TRANSAKSI BARU
 // ==========================
-if (isset($_POST['buat_transaksi'])) {
-  $pelanggan = trim($_POST['pelanggan']);
-  $stmt = $conn->prepare("INSERT INTO penjualan (tanggal, kasir, pelanggan, status, total, keuntungan)
-                          VALUES (NOW(), ?, ?, 'aktif', 0, 0)");
-  $stmt->bind_param("ss", $kasir, $pelanggan);
+if (isset($_POST['buat_transaksi']) || (isset($_GET['action']) && $_GET['action'] == 'baru')) {
+  $pelanggan = isset($_POST['pelanggan']) ? trim($_POST['pelanggan']) : '';
+  $id_shift = $active_shift['id_shift'];
+  $stmt = $conn->prepare("INSERT INTO penjualan (tanggal, kasir, pelanggan, status, total, keuntungan, id_shift)
+                          VALUES (NOW(), ?, ?, 'aktif', 0, 0, ?)");
+  $stmt->bind_param("ssi", $kasir, $pelanggan, $id_shift);
   $stmt->execute();
   $id_baru = $conn->insert_id;
   header("Location: penjualan_tambah.php?id=$id_baru");
@@ -119,7 +123,7 @@ $q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', '
         <div class="page-content">
 
           <div class="page-header-flex">
-            <h2>Manajemen Penjualan</h2>
+            <h2>🛒 Manajemen Penjualan</h2>
             <form method="POST" class="header-form-flex">
               <button type="submit" name="buat_transaksi" class="btn-primary">+ Buat Transaksi Baru</button>
             </form>
@@ -127,7 +131,7 @@ $q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', '
 
           <!-- 📜 SECTION: RIWAYAT TRANSAKSI SELESAI -->
           <div class="sub-header-flex">
-            <h3>📜 Riwayat Penjualan (Selesai/Batal)</h3>
+            <h3> Riwayat Penjualan (Selesai/Batal)</h3>
             <div class="search-wrapper">
               <div class="search-container">
                 <span class="search-icon">🔍</span>

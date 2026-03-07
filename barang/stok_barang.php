@@ -113,7 +113,7 @@ $result = $conn->query($sql);
           <!-- Header Area -->
           <div class="page-header-redesign">
             <div class="header-left">
-              <h1>Manajemen Stok</h1>
+              <h1>📦 Manajemen Stok</h1>
               <div class="tab-navigation">
                 <a href="stok_barang.php" class="tab-item <?= $view_status == 'aktif' ? 'active' : '' ?>">
                   Stok Aktif

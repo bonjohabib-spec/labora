@@ -28,17 +28,31 @@ $p = $q->fetch_assoc();
             <p style="color: #64748b; font-size: 14px; margin-bottom: 25px;">Nomor Invoice: <strong>#INV-<?= $id_penjualan ?></strong></p>
             
             <div class="info-row">
+                <span>Metode Pembayaran</span>
+                <span class="badge" style="background: <?= $p['metode_pembayaran'] == 'tunai' ? '#ecfdf5' : '#fffbeb' ?>; color: <?= $p['metode_pembayaran'] == 'tunai' ? '#059669' : '#92400e' ?>; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 11px; text-transform: uppercase;">
+                    <?= $p['metode_pembayaran'] ?>
+                </span>
+            </div>
+            <div class="info-row">
                 <span>Total Belanja</span>
                 <strong>Rp <?= number_format($p['total'], 0, ',', '.') ?></strong>
             </div>
             <div class="info-row">
-                <span>Tunai (Bayar)</span>
+                <span><?= $p['metode_pembayaran'] == 'tunai' ? 'Tunai (Bayar)' : 'Dibayar (DP)' ?></span>
                 <strong>Rp <?= number_format($p['bayar'], 0, ',', '.') ?></strong>
             </div>
-            <div class="info-row" style="color: #10b981; border-bottom: none;">
-                <span>Kembalian</span>
-                <strong style="font-size: 18px;">Rp <?= number_format($p['kembali'], 0, ',', '.') ?></strong>
-            </div>
+            
+            <?php if ($p['metode_pembayaran'] == 'tunai'): ?>
+                <div class="info-row" style="color: #10b981; border-bottom: none;">
+                    <span>Kembalian</span>
+                    <strong style="font-size: 18px;">Rp <?= number_format($p['kembali'], 0, ',', '.') ?></strong>
+                </div>
+            <?php else: ?>
+                <div class="info-row" style="color: #ef4444; border-bottom: none;">
+                    <span>Sisa Hutang</span>
+                    <strong style="font-size: 18px;">Rp <?= number_format($p['sisa_piutang'], 0, ',', '.') ?></strong>
+                </div>
+            <?php endif; ?>
 
             <div class="btn-group">
                 <button onclick="printNota()" class="btn btn-print">🖨️ CETAK NOTA (ENTER)</button>

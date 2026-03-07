@@ -1,12 +1,16 @@
 <?php
 if (session_status() == PHP_SESSION_NONE) session_start();
 include __DIR__ . '/../includes/koneksi.php';
+include __DIR__ . '/../includes/auth_shift.php';
 
 // Cek login dan role
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'owner') {
     header("Location: ../auth/index.php");
     exit();
 }
+
+$kasir = $_SESSION['username'];
+$active_shift = checkShift($conn, $kasir); // Wajib buka kasir dulu
 
 $today = date('Y-m-d');
 $yesterday = date('Y-m-d', strtotime('-1 day'));
@@ -76,9 +80,15 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="page-content">
-      <div class="welcome-header">
-        <h1>Halo, <?= htmlspecialchars($_SESSION['username'] ?? 'Owner') ?>! 👋</h1>
-        <p>Inilah ringkasan aktivitas toko Anda hari ini, <?= date('d M Y') ?>.</p>
+      <div class="welcome-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+          <h1>Halo, <?= htmlspecialchars($_SESSION['username'] ?? 'Owner') ?>! 👋</h1>
+          <p>Ringkasan aktivitas toko hari ini, <?= date('d M Y') ?>. 
+             <span class="badge" style="background: #ecfdf5; color: #059669; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-left: 10px;">
+                🟢 SHIFT AKTIF (Sejak <?= date('H:i', strtotime($active_shift['waktu_buka'])) ?>)
+             </span>
+          </p>
+        </div>
       </div>
 
       <!-- Quick Action Bar -->
@@ -95,6 +105,13 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
           <div class="btn-text">
             <strong>Tambah Stok</strong>
             <small>Input barang masuk</small>
+          </div>
+        </a>
+        <a href="../dashboard/tutup_kasir.php" class="action-btn danger-light">
+          <span class="btn-icon">🏁</span>
+          <div class="btn-text">
+            <strong>Tutup Kasir</strong>
+            <small>Akhiri shift & hitung uang</small>
           </div>
         </a>
         <a href="../pengeluaran/tambah_pengeluaran.php" class="action-btn warning">

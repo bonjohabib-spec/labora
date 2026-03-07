@@ -1,29 +1,142 @@
-.btn-primary { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
-.btn-outline { background: white; border: 1px solid #d1d5db; padding: 7px 15px; border-radius: 6px; text-decoration: none; color: #374151; font-size: 13px; }
-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-th { text-align: left; padding: 12px 15px; background: #f9fafb; font-size: 13px; color: #6b7280; border-bottom: 1px solid #edf2f7; }
-td { padding: 12px 15px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
-.badge-selesai { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-.badge-batal { background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+/* === PENJUALAN LIST - PREMIUM CLEAN UI === */
 
-/* 🔍 SEARCH BOX STYLING */
+/* Page Header */
+.page-header-flex h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main, #1e293b);
+}
+
+.sub-header-flex h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main, #1e293b);
+}
+
+/* Tombol Utama */
+.btn-primary {
+  background: var(--primary-blue, #3b82f6);
+  color: white;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+.btn-primary:hover {
+  background: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+/* Tombol Aksi (Hapus) - Subtle Style */
+.btn-outline {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  padding: 5px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #94a3b8;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+.btn-outline:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+/* ===== TABEL PREMIUM ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+/* Header Kolom */
+th {
+  text-align: left;
+  padding: 10px 16px;
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Isi Baris */
+td {
+  padding: 10px 16px;
+  border-bottom: 1px solid #f8fafc;
+  font-size: 13px;
+  color: #475569;
+}
+
+/* Hover Effect pada Baris */
+tbody tr {
+  transition: background 0.15s;
+}
+tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* Link Invoice */
+td a[href*="detail"] {
+  color: var(--primary-blue, #3b82f6);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 13px;
+}
+td a[href*="detail"]:hover {
+  text-decoration: underline;
+}
+
+/* Badge Status */
+.badge-selesai {
+  background: #ecfdf5;
+  color: #059669;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-batal {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 🔍 SEARCH BOX */
 .search-container { position: relative; margin-bottom: 15px; }
 .search-container input {
   width: 100%;
-  padding: 12px 20px 12px 45px;
+  padding: 9px 18px 9px 40px;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 13px;
   transition: all 0.3s;
   background: #fff;
+  color: #475569;
 }
 .search-container input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary-blue, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
 }
-.search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 18px; }
-.no-result-msg { display: none; text-align: center; padding: 30px; color: #94a3b8; font-style: italic; }
+.search-container input::placeholder {
+  color: #cbd5e1;
+}
+.search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #cbd5e1; font-size: 15px; }
+.no-result-msg { display: none; text-align: center; padding: 30px; color: #94a3b8; font-style: italic; font-size: 13px; }
 
 /* LAYOUT HELPER */
 .page-header-flex, .sub-header-flex {
@@ -33,7 +146,7 @@ td { padding: 12px 15px; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
   margin-bottom: 20px;
 }
 .header-form-flex { display: flex; gap: 10px; }
-.search-wrapper { width: 300px; }
+.search-wrapper { width: 280px; }
 
 /* 📱 RESPONSIVE (MOBILE) */
 @media (max-width: 768px) {

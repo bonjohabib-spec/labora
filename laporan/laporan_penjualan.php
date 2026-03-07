@@ -146,31 +146,33 @@ $res_items = mysqli_query($conn, $query_top_items);
 
       <div class="detail-card">
         <h4>📄 Daftar Transaksi Penjualan</h4>
-        <table class="table-mini" style="font-size: 14px;">
-          <thead>
-            <tr style="background: #f8fafc;">
-              <th style="padding: 15px;">No. Invoice</th>
-              <th>Tanggal</th>
-              <th>Pelanggan</th>
-              <th>Kasir</th>
-              <th style="text-align: right; padding-right: 15px;">Total (Rp)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php while($row = mysqli_fetch_assoc($res_detail)): ?>
-            <tr>
-              <td style="padding: 15px; font-weight: 600; color: #2563eb;">#INV-<?= $row['id_penjualan'] ?></td>
-              <td><?= date('d/m/Y H:i', strtotime($row['tanggal'])) ?></td>
-              <td><?= htmlspecialchars($row['pelanggan'] ?: '-') ?></td>
-              <td><?= htmlspecialchars($row['kasir']) ?></td>
-              <td style="text-align: right; padding-right: 15px; font-weight: bold;">Rp <?= number_format($row['total'], 0, ',', '.') ?></td>
-            </tr>
-            <?php endwhile; ?>
-            <?php if (mysqli_num_rows($res_detail) == 0): ?>
-            <tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 40px;">Tidak ada data transaksi ditemukan.</td></tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
+        <div class="table-container">
+          <table class="table-mini">
+            <thead>
+              <tr>
+                <th>No. Invoice</th>
+                <th>Tanggal</th>
+                <th>Pelanggan</th>
+                <th>Kasir</th>
+                <th style="text-align: right;">Total (Rp)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php while($row = mysqli_fetch_assoc($res_detail)): ?>
+              <tr>
+                <td style="font-weight: 600; color: var(--primary-blue, #3b82f6);">#INV-<?= $row['id_penjualan'] ?></td>
+                <td><?= date('d/m/Y H:i', strtotime($row['tanggal'])) ?></td>
+                <td><?= htmlspecialchars($row['pelanggan'] ?: '-') ?></td>
+                <td><?= htmlspecialchars($row['kasir']) ?></td>
+                <td style="text-align: right; font-weight: 700;">Rp <?= number_format($row['total'], 0, ',', '.') ?></td>
+              </tr>
+              <?php endwhile; ?>
+              <?php if (mysqli_num_rows($res_detail) == 0): ?>
+              <tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 40px;">Tidak ada data transaksi ditemukan.</td></tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>

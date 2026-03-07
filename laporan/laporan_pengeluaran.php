@@ -94,30 +94,32 @@ $grand_total = mysqli_fetch_assoc(mysqli_query($conn, $query_total))['grand_tota
       </div>
 
       <div class="detail-card">
-        <h4>📄 Daftar Riwayat Pengeluaran</h4>
-        <table class="table-mini" style="font-size: 14px;">
-          <thead>
-            <tr>
-              <th style="padding-left: 15px;">Tanggal</th>
-              <th>Kategori</th>
-              <th>Keterangan</th>
-              <th style="text-align: right; padding-right: 15px;">Nominal (Rp)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php while($row = mysqli_fetch_assoc($res_detail)): ?>
-            <tr>
-              <td style="padding-left: 15px; color: #64748b;"><?= date('d/m/Y', strtotime($row['tanggal'])) ?></td>
-              <td><span class="badge-kategori"><?= htmlspecialchars($row['kategori'] ?: 'Lain-lain') ?></span></td>
-              <td><?= htmlspecialchars($row['deskripsi']) ?></td>
-              <td style="text-align: right; padding-right: 15px; font-weight: bold; color: #ef4444;">Rp <?= number_format($row['nominal'], 0, ',', '.') ?></td>
-            </tr>
-            <?php endwhile; ?>
-            <?php if (mysqli_num_rows($res_detail) == 0): ?>
-            <tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 40px;">Tidak ada data pengeluaran ditemukan.</td></tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
+        <h4>📄 Daftar Rincian Pengeluaran</h4>
+        <div class="table-container">
+          <table class="table-mini">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Kategori</th>
+                <th>Keterangan</th>
+                <th style="text-align: right;">Nominal (Rp)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php while($row = mysqli_fetch_assoc($res_detail)): ?>
+              <tr>
+                <td style="color: #64748b;"><?= date('d/m/Y', strtotime($row['tanggal'])) ?></td>
+                <td><span class="badge-kategori"><?= htmlspecialchars($row['kategori'] ?: 'Lain-lain') ?></span></td>
+                <td><?= htmlspecialchars($row['deskripsi']) ?></td>
+                <td style="text-align: right; font-weight: 700; color: #ef4444;">Rp <?= number_format($row['nominal'], 0, ',', '.') ?></td>
+              </tr>
+              <?php endwhile; ?>
+              <?php if (mysqli_num_rows($res_detail) == 0): ?>
+              <tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 40px;">Tidak ada data pengeluaran ditemukan.</td></tr>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>

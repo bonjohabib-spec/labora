@@ -5,6 +5,16 @@
   box-sizing: border-box;
 }
 
+:root {
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 75px;
+  --primary-blue: #3a79ef;
+  --text-soft: #64748b;
+  --text-main: #1e293b;
+  --nav-hover: #f1f5f9;
+  --nav-active-bg: #eff6ff;
+}
+
 body {
   margin: 0;
   font-family: 'Poppins', sans-serif;
@@ -14,18 +24,20 @@ body {
 
 .container {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
 .main-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  margin-left: var(--sidebar-width, 260px);
   padding: 20px 30px;
-  box-sizing: border-box;
-  overflow-y: auto;
-  background: #f0f2f5;
+  min-height: 100vh;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #f8fafc;
+}
+
+.main-content.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width, 75px);
 }
 
 .page-content {

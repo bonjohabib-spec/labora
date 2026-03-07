@@ -83,14 +83,14 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
 
       <!-- Quick Action Bar -->
       <div class="quick-actions">
-        <a href="../penjualan/penjualan_tambah.php" class="action-btn primary">
+        <a href="../penjualan/penjualan.php?action=baru" class="action-btn primary">
           <span class="btn-icon">🛒</span>
           <div class="btn-text">
             <strong>Kasir Baru</strong>
             <small>Buat transaksi penjualan</small>
           </div>
         </a>
-        <a href="../barang/stok_barang.php" class="action-btn secondary">
+        <a href="../barang/tambah_barang.php" class="action-btn secondary">
           <span class="btn-icon">📦</span>
           <div class="btn-text">
             <strong>Tambah Stok</strong>
@@ -180,22 +180,22 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
           </div>
           <div class="notif-container">
             <!-- PENGELUARAN TERAKHIR -->
-             <div class="recent-expenses" style="margin-bottom: 20px;">
-               <label style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 10px; display: block;">💸 Biaya Terakhir</label>
+             <div class="recent-expenses">
+               <label>💸 Biaya Terakhir</label>
                <?php if (mysqli_num_rows($qPengeluaran) > 0): ?>
                 <div class="expense-list">
                   <?php while ($xp = mysqli_fetch_assoc($qPengeluaran)): ?>
-                    <div class="expense-item" style="display:flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f8fafc;">
+                    <div class="expense-item">
                       <div>
-                        <div style="font-size: 13px; font-weight: 600; color: #1e293b;"><?= htmlspecialchars($xp['deskripsi']) ?></div>
-                        <div style="font-size: 10px; color: #94a3b8;"><?= date('d M', strtotime($xp['tanggal'])) ?> • <?= htmlspecialchars($xp['kategori']) ?></div>
+                        <div class="product-name"><?= htmlspecialchars($xp['deskripsi']) ?></div>
+                        <div class="product-meta"><?= date('d M', strtotime($xp['tanggal'])) ?> • <?= htmlspecialchars($xp['kategori']) ?></div>
                       </div>
-                      <div style="font-size: 13px; font-weight: 700; color: #ef4444;">- Rp<?= number_format($xp['nominal'], 0, ',', '.') ?></div>
+                      <div class="expense-amount">- Rp<?= number_format($xp['nominal'], 0, ',', '.') ?></div>
                     </div>
                   <?php endwhile; ?>
                 </div>
                <?php else: ?>
-                <p style="font-size: 12px; color: #94a3b8; font-style: italic;">Belum ada catatan biaya.</p>
+                <p class="empty-notif">Belum ada catatan biaya.</p>
                <?php endif; ?>
              </div>
 

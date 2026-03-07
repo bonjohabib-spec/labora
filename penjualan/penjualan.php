@@ -89,7 +89,16 @@ if (isset($_POST['buat_transaksi'])) {
 $conn->query("DELETE FROM detail_penjualan WHERE id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE status = 'aktif' AND kasir = '$kasir')");
 $conn->query("DELETE FROM penjualan WHERE status = 'aktif' AND kasir = '$kasir'");
 
-$q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', 'batal') ORDER BY tanggal DESC");
+// Paginasi
+$per_page = 20;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $per_page;
+
+$q_total = $conn->query("SELECT COUNT(*) AS total FROM penjualan WHERE status IN ('selesai', 'batal')");
+$total_rows = $q_total->fetch_assoc()['total'];
+$total_pages = ceil($total_rows / $per_page);
+
+$q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', 'batal') ORDER BY tanggal DESC LIMIT $per_page OFFSET $offset");
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -164,6 +173,29 @@ $q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', '
             </table>
           </div>
           <div id="noMatch" class="no-result-msg">Data transaksi tidak ditemukan.</div>
+
+          <?php if ($total_pages > 1): ?>
+          <div class="pagination">
+            <span class="page-info"><?= $page ?> / <?= $total_pages ?></span>
+            <div class="page-nav">
+              <?php if ($page > 1): ?>
+                <a href="?page=1" class="page-btn" title="Awal">«</a>
+                <a href="?page=<?= $page - 1 ?>" class="page-btn" title="Sebelumnya">‹</a>
+              <?php else: ?>
+                <span class="page-btn disabled">«</span>
+                <span class="page-btn disabled">‹</span>
+              <?php endif; ?>
+
+              <?php if ($page < $total_pages): ?>
+                <a href="?page=<?= $page + 1 ?>" class="page-btn" title="Selanjutnya">›</a>
+                <a href="?page=<?= $total_pages ?>" class="page-btn" title="Akhir">»</a>
+              <?php else: ?>
+                <span class="page-btn disabled">›</span>
+                <span class="page-btn disabled">»</span>
+              <?php endif; ?>
+            </div>
+          </div>
+          <?php endif; ?>
 
         </div>
       </div>

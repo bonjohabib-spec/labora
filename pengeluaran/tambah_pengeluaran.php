@@ -25,9 +25,12 @@ if (!isset($_SESSION['user_role'])) {
   <div class="main-content">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
-    <div style="margin-bottom: 30px;">
-      <a href="pengeluaran.php" style="text-decoration: none; color: #6b7280; font-size: 14px;">← Kembali ke Daftar Pengeluaran</a>
-      <h2 style="margin-top: 10px;">Tambah Pengeluaran Baru</h2>
+    <div style="margin-bottom: 20px;">
+      <a href="pengeluaran.php" style="text-decoration: none; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">← Kembali ke Daftar</a>
+      <div class="welcome-header" style="margin-top: 10px;">
+        <h1>➕ Tambah Pengeluaran</h1>
+        <p>Gunakan formulir ini untuk mencatat biaya baru.</p>
+      </div>
     </div>
 
     <div class="form-container">

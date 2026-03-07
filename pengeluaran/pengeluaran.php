@@ -34,15 +34,18 @@ $total = mysqli_fetch_assoc($totalQuery)['total'] ?? 0;
   <div class="main-content">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <h2>Pengeluaran Harian</h2>
+    <div class="pengeluaran-header">
+      <div class="welcome-header">
+        <h1>💸 Pengeluaran Harian</h1>
+        <p>Catat dan pantau pengeluaran operasional toko Anda.</p>
+      </div>
       <a href="tambah_pengeluaran.php" class="btn-add-expense">+ Tambah Pengeluaran</a>
     </div>
 
     <div class="page-content">
       <div class="pengeluaran-filter">
         <form method="GET" class="pengeluaran-filter-form">
-          <label>Pilih Tanggal:</label>
+          <label>Tanggal:</label>
           <input type="date" name="tanggal" value="<?= htmlspecialchars($tanggal) ?>">
           <button type="submit">Filter</button>
         </form>

@@ -85,10 +85,29 @@ if (isset($_GET['hapus_user']) && $_SESSION['user_role'] === 'owner') {
     if ($id_hapus == $checkSelf['id']) {
         $error = "Anda tidak bisa menghapus akun sendiri!";
     } else {
-        if ($conn->query("DELETE FROM users WHERE id = $id_hapus")) {
-            $success = "User berhasil dihapus!";
+        // Ambil username user yang akan dihapus
+        $userToDelete = $conn->query("SELECT username FROM users WHERE id = $id_hapus")->fetch_assoc();
+        
+        if ($userToDelete) {
+            $oldUsername = $conn->real_escape_string($userToDelete['username']);
+            $safeCurrentUser = $conn->real_escape_string($currentUser);
+            
+            $conn->begin_transaction();
+            try {
+                // Re-assign semua data terkait ke user yang sedang login
+                $conn->query("UPDATE pengeluaran SET dibuat_oleh = '$safeCurrentUser' WHERE dibuat_oleh = '$oldUsername'");
+                $conn->query("UPDATE penjualan SET kasir = '$safeCurrentUser' WHERE kasir = '$oldUsername'");
+                
+                // Baru hapus user
+                $conn->query("DELETE FROM users WHERE id = $id_hapus");
+                $conn->commit();
+                $success = "User '$oldUsername' berhasil dihapus! Data transaksi dialihkan ke akun Anda.";
+            } catch (Exception $e) {
+                $conn->rollback();
+                $error = "Gagal menghapus user: " . $e->getMessage();
+            }
         } else {
-            $error = "Gagal menghapus user.";
+            $error = "User tidak ditemukan.";
         }
     }
 }

@@ -41,10 +41,10 @@ $qLebih = mysqli_query($conn, "SELECT nama_barang FROM barang WHERE stok > stok_
 <head>
   <meta charset="UTF-8">
   <title>Dashboard - LABORA</title>
-  <link rel="stylesheet" href="../assets/css/global.css">
-  <link rel="stylesheet" href="../assets/css/sidebar.css">
-  <link rel="stylesheet" href="../assets/css/header.css">
-  <link rel="stylesheet" href="../assets/css/dashboard.css">
+  <link rel="stylesheet" href="../assets/css/global.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../assets/css/sidebar.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../assets/css/header.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../assets/css/dashboard.css?v=<?= time() ?>">
 </head>
 <body>
 

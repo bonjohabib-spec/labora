@@ -97,8 +97,8 @@ $q_riwayat = $conn->query("SELECT * FROM penjualan WHERE status IN ('selesai', '
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Penjualan - LABORA</title>
-  <link rel="stylesheet" href="../assets/css/sidebar.css">
-  <link rel="stylesheet" href="../assets/css/header.css">
+  <link rel="stylesheet" href="../assets/css/sidebar.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../assets/css/header.css?v=<?= time() ?>">
   <link rel="stylesheet" href="../assets/css/penjualan_list.css?v=<?= time() ?>">
   <link rel="stylesheet" href="../assets/css/global.css?v=<?= time() ?>">
 </head>

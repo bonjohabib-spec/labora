@@ -55,9 +55,9 @@ $res_items = mysqli_query($conn, $query_top_items);
 <head>
   <meta charset="UTF-8">
   <title>Rincian Penjualan - LABORA</title>
-  <link rel="stylesheet" href="../assets/css/global.css">
-  <link rel="stylesheet" href="../assets/css/sidebar.css">
-  <link rel="stylesheet" href="../assets/css/header.css">
+  <link rel="stylesheet" href="../assets/css/global.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../assets/css/sidebar.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../assets/css/header.css?v=<?= time() ?>">
   <link rel="stylesheet" href="../assets/css/laporan_penjualan.css?v=<?= time() ?>">
 </head>
 <body>

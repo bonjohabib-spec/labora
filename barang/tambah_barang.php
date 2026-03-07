@@ -14,10 +14,10 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'owner') {
 <head>
   <meta charset="UTF-8">
   <title>Tambah Barang - LABORA</title>
-  <link rel="stylesheet" href="../assets/css/global.css">
-  <link rel="stylesheet" href="../assets/css/sidebar.css">
-  <link rel="stylesheet" href="../assets/css/header.css">
-  <link rel="stylesheet" href="../assets/css/tambah_barang.css">
+  <link rel="stylesheet" href="../assets/css/global.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../assets/css/sidebar.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../assets/css/header.css?v=<?= time() ?>">
+  <link rel="stylesheet" href="../assets/css/tambah_barang.css?v=<?= time() ?>">
 </head>
 <body>
   <div class="container">

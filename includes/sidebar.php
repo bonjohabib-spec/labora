@@ -70,23 +70,33 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
   const sidebar = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('toggle-sidebar');
   const mainContent = document.querySelector('.main-content');
 
-  // Load state from localStorage
-  if (localStorage.getItem('sidebar-collapsed') === 'true') {
-    sidebar.classList.add('collapsed');
-    if(mainContent) mainContent.classList.add('sidebar-collapsed');
-  }
-
-  toggleBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    localStorage.setItem('sidebar-collapsed', isCollapsed);
-    
-    if(mainContent) {
-      mainContent.classList.toggle('sidebar-collapsed', isCollapsed);
+  // Function to apply sidebar state
+  const applySidebarState = (isCollapsed) => {
+    if (isCollapsed) {
+      sidebar.classList.add('collapsed');
+      if (mainContent) mainContent.classList.add('sidebar-collapsed');
+    } else {
+      sidebar.classList.remove('collapsed');
+      if (mainContent) mainContent.classList.remove('sidebar-collapsed');
     }
+  };
+
+  // 1. Initial Load from localStorage
+  const storedState = localStorage.getItem('sidebar-collapsed') === 'true';
+  applySidebarState(storedState);
+
+  // 2. Toggle Click Event
+  toggleBtn.addEventListener('click', () => {
+    const currentState = sidebar.classList.contains('collapsed');
+    const newState = !currentState;
+    
+    applySidebarState(newState);
+    localStorage.setItem('sidebar-collapsed', newState);
   });
+});
 </script>

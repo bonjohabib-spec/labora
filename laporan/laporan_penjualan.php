@@ -11,6 +11,19 @@ $tanggal_awal = isset($_GET['tanggal_awal']) ? $_GET['tanggal_awal'] : date('Y-m
 $tanggal_akhir = isset($_GET['tanggal_akhir']) ? $_GET['tanggal_akhir'] : date('Y-m-t');
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
 
+// Paginasi
+$per_page = 10;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $per_page;
+
+$query_count = "SELECT COUNT(*) as total FROM penjualan WHERE status='selesai' AND DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'";
+if ($search) {
+    $query_count .= " AND pelanggan LIKE '%$search%'";
+}
+$res_count = mysqli_query($conn, $query_count);
+$total_data = mysqli_fetch_assoc($res_count)['total'];
+$total_pages = ceil($total_data / $per_page);
+
 // 1. Data Penjualan Terperinci
 $query_detail = "SELECT * FROM penjualan 
                  WHERE status='selesai' 
@@ -18,7 +31,7 @@ $query_detail = "SELECT * FROM penjualan
 if ($search) {
     $query_detail .= " AND pelanggan LIKE '%$search%'";
 }
-$query_detail .= " ORDER BY tanggal DESC";
+$query_detail .= " ORDER BY tanggal DESC LIMIT $per_page OFFSET $offset";
 $res_detail = mysqli_query($conn, $query_detail);
 
 // 2. Riset: Pelanggan Terbanyak (berdasarkan total belanja)
@@ -173,6 +186,33 @@ $res_items = mysqli_query($conn, $query_top_items);
             </tbody>
           </table>
         </div>
+
+        <?php if ($total_pages > 1): ?>
+        <div class="pagination">
+          <span class="page-info">Halaman <?= $page ?> / <?= $total_pages ?></span>
+          <div class="page-nav">
+            <?php 
+            $base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&search=$search&page=";
+            ?>
+            <?php if ($page > 1): ?>
+              <a href="<?= $base_url ?>1" class="page-btn" title="Awal">«</a>
+              <a href="<?= $base_url ?><?= $page - 1 ?>" class="page-btn" title="Sebelumnya">‹</a>
+            <?php else: ?>
+              <span class="page-btn disabled">«</span>
+              <span class="page-btn disabled">‹</span>
+            <?php endif; ?>
+
+            <?php if ($page < $total_pages): ?>
+              <a href="<?= $base_url ?><?= $page + 1 ?>" class="page-btn" title="Selanjutnya">›</a>
+              <a href="<?= $base_url ?><?= $total_pages ?>" class="page-btn" title="Akhir">»</a>
+            <?php else: ?>
+              <span class="page-btn disabled">›</span>
+              <span class="page-btn disabled">»</span>
+            <?php endif; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
       </div>
 
     </div>

@@ -72,6 +72,15 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
         exit;
     }
 }
+// 3. STATISTIK RINGKASAN STOK
+$qTotal = mysqli_query($conn, "SELECT COUNT(*) as total FROM barang_varian WHERE status='aktif'");
+$totalBarang = mysqli_fetch_assoc($qTotal)['total'] ?? 0;
+
+$qLow = mysqli_query($conn, "SELECT COUNT(*) as low FROM barang_varian v JOIN barang b ON v.id_barang = b.id_barang WHERE v.stok > 0 AND v.stok <= b.stok_min AND v.status='aktif'");
+$totalLow = mysqli_fetch_assoc($qLow)['low'] ?? 0;
+
+$qEmpty = mysqli_query($conn, "SELECT COUNT(*) as jml_habis FROM barang_varian WHERE stok <= 0 AND status='aktif'");
+$totalEmpty = mysqli_fetch_assoc($qEmpty)['jml_habis'] ?? 0;
 
 // 2. FILTER TAB (Default: aktif)
 $view_status = isset($_GET['view']) && $_GET['view'] == 'non-aktif' ? 'non-aktif' : 'aktif';
@@ -108,25 +117,50 @@ $result = $conn->query($sql);
       <?php include __DIR__ . '/../includes/header.php'; ?>
 
       <div class="page-content">
+        <!-- SUMMARY CARDS V2 -->
+        <div class="summary-cards">
+          <div class="summary-card card-total">
+            <div class="summary-header">
+              <span class="summary-title">Total Varian</span>
+              <span class="summary-badge"><?= $totalBarang ?></span>
+            </div>
+            <div class="summary-value"><?= number_format($totalBarang, 0, ',', '.') ?> <small>Produk</small></div>
+            <span class="summary-label">Aktif dalam sistem</span>
+          </div>
+
+          <div class="summary-card card-warning">
+            <div class="summary-header">
+              <span class="summary-title">Stok Menipis</span>
+              <span class="summary-badge"><?= $totalLow ?></span>
+            </div>
+            <div class="summary-value" style="color: #ea580c;"><?= number_format($totalLow, 0, ',', '.') ?> <small>Varian</small></div>
+            <span class="summary-label">Perlu segera restock</span>
+          </div>
+
+          <div class="summary-card card-danger">
+            <div class="summary-header">
+              <span class="summary-title">Stok Habis</span>
+              <span class="summary-badge"><?= $totalEmpty ?></span>
+            </div>
+            <div class="summary-value" style="color: #dc2626;"><?= number_format($totalEmpty, 0, ',', '.') ?> <small>Varian</small></div>
+            <span class="summary-label">Segera hubungi supplier</span>
+          </div>
+        </div>
+
         <section class="table-section">
           
           <!-- Header Area -->
           <div class="page-header-redesign">
             <div class="header-left">
-              <h1>📦 Manajemen Stok</h1>
               <div class="tab-navigation">
-                <a href="stok_barang.php" class="tab-item <?= $view_status == 'aktif' ? 'active' : '' ?>">
-                  Stok Aktif
-                </a>
-                <a href="stok_barang.php?view=non-aktif" class="tab-item <?= $view_status == 'non-aktif' ? 'active' : '' ?>">
-                  Arsip (Non-aktif)
-                </a>
+                <a href="?view=aktif" class="tab-item <?= $view_status == 'aktif' ? 'active' : '' ?>">Barang Aktif</a>
+                <a href="?view=non-aktif" class="tab-item <?= $view_status == 'non-aktif' ? 'active' : '' ?>">Arsip (Non-Aktif)</a>
               </div>
             </div>
             
             <div class="header-right">
               <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Cari barang (Nama/Warna/Ukuran)..." onkeyup="instantSearch()">
+                <input type="text" id="searchInput" placeholder="Cari nama barang..." onkeyup="instantSearch()">
                 <button type="button" disabled>🔍</button>
               </div>
               <button class="btn-primary" onclick="window.location.href='tambah_barang.php'">+ Tambah Barang</button>

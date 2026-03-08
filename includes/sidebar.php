@@ -27,7 +27,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <li class="<?= $currentPage == 'stok_barang.php' ? 'active' : '' ?>">
       <a href="<?= $base_url ?>/barang/stok_barang.php">
         <i class="fas fa-boxes-stacked"></i>
-        <span class="link-text">Stok Barang</span>
+        <span class="link-text">Produk</span>
       </a>
     </li>
     <?php endif; ?>

@@ -8,7 +8,7 @@ while($row = $res->fetch_assoc()) {
 }
 
 echo "\n--- ADDING NEW COLUMNS ---\n";
-$conn->query("ALTER TABLE penjualan ADD COLUMN metode_pembayaran ENUM('tunai', 'piutang') DEFAULT 'tunai'");
+$conn->query("ALTER TABLE penjualan ADD COLUMN metode_pembayaran ENUM('tunai', 'transfer', 'piutang') DEFAULT 'tunai'");
 $conn->query("ALTER TABLE penjualan ADD COLUMN jumlah_bayar DECIMAL(15,2) DEFAULT 0");
 $conn->query("ALTER TABLE penjualan ADD COLUMN sisa_piutang DECIMAL(15,2) DEFAULT 0");
 $conn->query("ALTER TABLE penjualan ADD COLUMN jatuh_tempo DATE NULL");

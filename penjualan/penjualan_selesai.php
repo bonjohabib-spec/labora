@@ -50,12 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $total_akhir = $resT['total'] ?? 0;
         $untung_akhir = $resT['untung'] ?? 0;
 
-        // 4. Update data pembayaran
+        // 4. Update data pembayaran (Mendukung Pembayaran Campuran / DP)
         $metode  = $_POST['metode_pembayaran'] ?? 'tunai';
         $bayar   = floatval($_POST['bayar'] ?? 0);
-        $kembali = ($metode == 'tunai') ? max(0, $bayar - $total_akhir) : 0;
-        $piutang = ($metode == 'piutang') ? max(0, $total_akhir - $bayar) : 0;
-        $tgl_jt = ($metode == 'piutang') ? date('Y-m-d', strtotime('+14 days')) : null;
+        $kembali = ($bayar >= $total_akhir) ? ($bayar - $total_akhir) : 0;
+        $piutang = ($bayar < $total_akhir) ? ($total_akhir - $bayar) : 0;
+        
+        // Janji Bayar otomatis tersimpan jika ada sisa piutang (> 0)
+        $tgl_jt = ($piutang > 0) ? ($_POST['jatuh_tempo'] ?? date('Y-m-d', strtotime('+14 days'))) : null;
 
         $update = $conn->prepare("
             UPDATE penjualan 

@@ -14,33 +14,33 @@ if (!$active_shift) {
 $id_s = $active_shift['id_shift'];
 $waktu_buka = $active_shift['waktu_buka'];
 
-// 1. Hitung Total Omset (Volume) dan Sisa Piutang TRANSAKSI YANG DIBUAT DI SHIFT INI
-$qOmset = $conn->query("SELECT SUM(total) as vol, SUM(sisa_piutang) as sisa FROM penjualan WHERE tanggal >= '$waktu_buka' AND status = 'selesai'");
-$dataOmset = $qOmset->fetch_assoc();
-$total_vol = $dataOmset['vol'] ?? 0;
-$total_sisa = $dataOmset['sisa'] ?? 0;
+// 1. Hitung Penjualan Tunai di shift ini
+$qTunai = $conn->query("SELECT SUM(total - sisa_piutang) as total FROM penjualan WHERE id_shift = $id_s AND metode_pembayaran = 'tunai' AND status = 'selesai'");
+$jual_tunai = $qTunai->fetch_assoc()['total'] ?? 0;
 
-// 2. Hitung Pelunasan Cicilan Piutang yang masuk di shift ini (Bisa dari nota hari ini, atau nota minggu lalu)
-$qPiutangMasuk = $conn->query("SELECT SUM(nominal) as total FROM pembayaran_piutang WHERE id_shift = $id_s");
-$piutang_masuk = $qPiutangMasuk->fetch_assoc()['total'] ?? 0;
+// 2. Hitung Penjualan Transfer di shift ini
+$qTransfer = $conn->query("SELECT SUM(total - sisa_piutang) as total FROM penjualan WHERE id_shift = $id_s AND metode_pembayaran = 'transfer' AND status = 'selesai'");
+$jual_transfer = $qTransfer->fetch_assoc()['total'] ?? 0;
 
-// 3. Tunai Langsung / DP Awal
-// Logika: (Uang yang sudah masuk dari nota baru) - (Uang cicilan nota baru yang masuk lewat tombol piutang)
-// Karena tombol piutang nambah saldo_akhir_sistem, kita harus pisahkan mana yang "Uang Awal" dan mana yang "Uang Cicilan".
-$tunai_langsung = ($total_vol - $total_sisa) - ($conn->query("SELECT SUM(nominal) FROM pembayaran_piutang WHERE id_shift = $id_s AND id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE tanggal >= '$waktu_buka')")->fetch_row()[0] ?? 0);
-$tunai_langsung = max(0, $tunai_langsung);
+// 3. Hitung Pelunasan Cicilan Piutang di shift ini
+$qPiutangTunai = $conn->query("SELECT SUM(nominal) as total FROM pembayaran_piutang WHERE id_shift = $id_s AND metode_pembayaran = 'tunai'");
+$piutang_tunai = $qPiutangTunai->fetch_assoc()['total'] ?? 0;
 
-$total_gain_bersih = $tunai_langsung + $piutang_masuk;
-$total_seharusnya = $active_shift['saldo_awal'] + $total_gain_bersih;
+$qPiutangTransfer = $conn->query("SELECT SUM(nominal) as total FROM pembayaran_piutang WHERE id_shift = $id_s AND metode_pembayaran = 'transfer'");
+$piutang_transfer = $qPiutangTransfer->fetch_assoc()['total'] ?? 0;
+
+// 4. Perhitungan Total Uang Fisik yang harus ada (Modal Receh + Tunai + Pelunasan Tunai)
+$total_seharusnya = $active_shift['saldo_awal'] + $jual_tunai + $piutang_tunai;
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
     $saldo_fisik = floatval($_POST['saldo_fisik']);
     $saldo_sistem = $total_seharusnya;
     $selisih = $saldo_fisik - $saldo_sistem;
     
-    // Update Shift dengan nilai yang sudah dikoreksi (agar database bersih)
+    // Update Shift
     $stmt = $conn->prepare("UPDATE kas_shift SET waktu_tutup = NOW(), saldo_akhir_sistem = ?, saldo_akhir_fisik = ?, selisih = ?, status = 'closed' WHERE id_shift = ?");
-    $stmt->bind_param("dddi", $total_gain_bersih, $saldo_fisik, $selisih, $active_shift['id_shift']);
+    $total_uang_masuk_laci = $jual_tunai + $piutang_tunai; // Hanya uang fisik
+    $stmt->bind_param("dddi", $total_uang_masuk_laci, $saldo_fisik, $selisih, $active_shift['id_shift']);
     
     if ($stmt->execute()) {
         header("Location: dashboard.php");
@@ -94,16 +94,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
             <span>Rp <?= number_format($active_shift['saldo_awal'], 0, ',', '.') ?></span>
         </div>
         <div class="summary-row">
-            <span style="color: #64748b; font-size: 13px;">↳ Penjualan Tunai/DP</span>
-            <span style="color: #64748b;">Rp <?= number_format($tunai_langsung, 0, ',', '.') ?></span>
+            <span style="color: #64748b; font-size: 13px;">↳ Penjualan Tunai</span>
+            <span style="color: #64748b;">Rp <?= number_format($jual_tunai, 0, ',', '.') ?></span>
         </div>
         <div class="summary-row">
-            <span style="color: #64748b; font-size: 13px;">↳ Pelunasan Cicilan Piutang</span>
-            <span style="color: #64748b;">Rp <?= number_format($piutang_masuk, 0, ',', '.') ?></span>
+            <span style="color: #64748b; font-size: 13px;">↳ Penjualan Transfer</span>
+            <span style="color: #64748b;">Rp <?= number_format($jual_transfer, 0, ',', '.') ?></span>
+        </div>
+        <div class="summary-row">
+            <span style="color: #64748b; font-size: 13px;">↳ Pelunasan Cicilan (Tunai)</span>
+            <span style="color: #64748b;">Rp <?= number_format($piutang_tunai, 0, ',', '.') ?></span>
+        </div>
+        <div class="summary-row">
+            <span style="color: #64748b; font-size: 13px;">↳ Pelunasan Cicilan (Transfer)</span>
+            <span style="color: #64748b;">Rp <?= number_format($piutang_transfer, 0, ',', '.') ?></span>
         </div>
         <div class="summary-row" style="border-top: 1px solid #cbd5e1; padding-top: 12px;">
-            <span>TOTAL UANG SEHARUSNYA</span>
-            <span>Rp <?= number_format($total_seharusnya, 0, ',', '.') ?></span>
+            <span>TOTAL UANG FISIK (DI LACI)</span>
+            <div style="text-align: right;">
+                <div style="font-size: 16px;">Rp <?= number_format($total_seharusnya, 0, ',', '.') ?></div>
+                <small style="font-weight: 400; color: #94a3b8; font-size: 10px;">(Modal + Jual Tunai + Pelunasan Tunai)</small>
+            </div>
         </div>
     </div>
 

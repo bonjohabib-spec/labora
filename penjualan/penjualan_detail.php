@@ -28,16 +28,17 @@ if (isset($_POST['bayar_piutang'])) {
         $conn->begin_transaction();
         try {
             // 1. Catat ke riwayat pembayaran_piutang
-            $stmtPay = $conn->prepare("INSERT INTO pembayaran_piutang (id_penjualan, tanggal, nominal, id_shift) VALUES (?, NOW(), ?, ?)");
+            $metode_bayar = $_POST['metode_pelunasan'] ?? 'tunai';
+            $stmtPay = $conn->prepare("INSERT INTO pembayaran_piutang (id_penjualan, tanggal, nominal, metode_pembayaran, id_shift) VALUES (?, NOW(), ?, ?, ?)");
             $id_shift = isset($active_shift['id_shift']) ? $active_shift['id_shift'] : null;
-            $stmtPay->bind_param("idi", $id, $nominal, $id_shift);
+            $stmtPay->bind_param("idsi", $id, $nominal, $metode_bayar, $id_shift);
             $stmtPay->execute();
 
             // 2. Update sisa_piutang di tabel penjualan
             $conn->query("UPDATE penjualan SET sisa_piutang = sisa_piutang - $nominal, jumlah_bayar = jumlah_bayar + $nominal WHERE id_penjualan = $id");
 
-            // 3. Update Saldo Kas Shift
-            if ($id_shift) {
+            // 3. Update Saldo Kas Shift (Hanya jika Tunai)
+            if ($id_shift && $metode_bayar == 'tunai') {
                 $conn->query("UPDATE kas_shift SET saldo_akhir_sistem = saldo_akhir_sistem + $nominal WHERE id_shift = $id_shift");
             }
 
@@ -277,11 +278,18 @@ $d = $conn->query("
                 </div>
             </div>
             
-            <form method="POST" style="display: flex; gap: 10px; align-items: flex-end;">
-                <div style="flex: 1;">
+            <form method="POST" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                <div style="flex: 1; min-width: 200px;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #9a3412; margin-bottom: 5px;">NOMINAL BAYAR (RP)</label>
                     <input type="text" id="nominal_bayar_display" placeholder="Contoh: 50.000" style="width: 100%; padding: 10px; border: 1px solid #fdba74; border-radius: 8px; font-size: 16px; font-weight: 700;" required>
                     <input type="hidden" name="nominal_bayar" id="nominal_bayar_real">
+                </div>
+                <div style="width: 150px;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #9a3412; margin-bottom: 5px;">METODE</label>
+                    <select name="metode_pelunasan" style="width: 100%; padding: 10px; border: 1px solid #fdba74; border-radius: 8px; font-size: 14px; font-weight: 600; background: white;">
+                        <option value="tunai">Tunai</option>
+                        <option value="transfer">Transfer</option>
+                    </select>
                 </div>
                 <button type="submit" name="bayar_piutang" class="btn" style="height: 45px; padding: 0 25px; background: #ea580c; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">BAYAR SEKARANG</button>
             </form>
@@ -299,6 +307,7 @@ $d = $conn->query("
                 <thead>
                     <tr style="border-bottom: 1px solid #e2e8f0; text-align: left;">
                         <th style="padding: 10px;">Waktu</th>
+                        <th style="padding: 10px;">Metode</th>
                         <th style="padding: 10px;">Nominal</th>
                         <th style="padding: 10px;">Status</th>
                     </tr>
@@ -307,6 +316,7 @@ $d = $conn->query("
                     <?php while($h = $qHist->fetch_assoc()): ?>
                     <tr style="border-bottom: 1px solid #f1f5f9;">
                         <td style="padding: 10px; color: #64748b;"><?= date('d M Y, H:i', strtotime($h['tanggal'])) ?></td>
+                        <td style="padding: 10px;"><span style="text-transform: uppercase; font-size: 11px; font-weight: 700; background: #f1f5f9; padding: 2px 8px; border-radius: 4px;"><?= $h['metode_pembayaran'] ?></span></td>
                         <td style="padding: 10px;"><strong>Rp <?= number_format($h['nominal'], 0, ',', '.') ?></strong></td>
                         <td style="padding: 10px;"><span style="color: #10b981; font-weight: 700;">DITERIMA ✅</span></td>
                     </tr>

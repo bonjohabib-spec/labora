@@ -167,13 +167,18 @@ $detail = $conn->query("
             <div class="payment-row">
               <label>Metode Pembayaran</label>
               <select id="metode_pembayaran" class="input-bayar" style="font-weight: 600;">
-                <option value="tunai">Tunai / Lunas</option>
-                <option value="piutang">Piutang / Bon / Panjar</option>
+                <option value="tunai">Tunai</option>
+                <option value="transfer">Transfer</option>
+                <option value="piutang">Piutang</option>
               </select>
+            </div>
+            <div class="payment-row" id="row_jatuh_tempo" style="display: none;">
+              <label>Janji Bayar (Jatuh Tempo)</label>
+              <input type="date" id="jatuh_tempo" name="jatuh_tempo" class="input-bayar" value="<?= date('Y-m-d', strtotime('+14 days')) ?>">
             </div>
             <div class="payment-row" id="row_bayar">
               <label id="label_bayar">Nominal Bayar (Rp)</label>
-              <input type="number" id="bayar_display" class="input-bayar" placeholder="0" onfocus="this.select()">
+              <input type="text" id="bayar_display" class="input-bayar" placeholder="0" onfocus="this.select()">
             </div>
             <div class="payment-row" id="row_kembali">
               <label id="label_kembali">Kembalian</label>
@@ -192,6 +197,7 @@ $detail = $conn->query("
             <input type="hidden" id="hidden_metode" name="metode_pembayaran" value="tunai">
             <input type="hidden" id="hidden_bayar" name="bayar" value="0">
             <input type="hidden" id="hidden_kembali" name="kembali" value="0">
+            <input type="hidden" id="hidden_jatuh_tempo" name="jatuh_tempo">
             <button type="submit" class="btn-checkout">SELESAIKAN TRANSAKSI (F10)</button>
           </form>
         </div>
@@ -216,15 +222,17 @@ function confirmSelesai() {
   }
   
   const metode = $('#metode_pembayaran').val();
-  const bayar = parseFloat($('#bayar_display').val()) || 0;
+  const bayarValue = $('#bayar_display').val().replace(/\D/g, '');
+  const bayar = parseFloat(bayarValue) || 0;
   
   if (metode === 'tunai' && bayar < total) {
-      return confirm('Uang bayar kurang dari total. Lanjutkan sebagai transaksi Tunai?');
+      return confirm('Uang bayar kurang dari total. Lanjutkan sebagai transaksi Tunai? (Sisa akan masuk Piutang)');
   }
 
   document.getElementById('hidden_pelanggan').value = document.getElementById('pelanggan').value;
   document.getElementById('hidden_metode').value = metode;
   document.getElementById('hidden_bayar').value = bayar;
+  document.getElementById('hidden_jatuh_tempo').value = $('#jatuh_tempo').val();
   
   return confirm('Apakah transaksi ini sudah benar? Stok akan segera berkurang.');
 }
@@ -306,13 +314,24 @@ $(document).ready(function() {
     hitungKembalian(); // Update kembalian saat total berubah
   }
 
-  // Logika Pembayaran
   function hitungKembalian() {
     const total = parseFloat($('.total-value').text().replace(/\D/g,'')) || 0;
-    const bayar = parseFloat($('#bayar_display').val()) || 0;
+    const bayarValue = $('#bayar_display').val().replace(/\D/g, '');
+    const bayar = parseFloat(bayarValue) || 0;
     const kembali = bayar - total;
     
     $('#kembali_text').text(formatRupiah(Math.max(0, kembali)));
+    
+    // Logika Janji Bayar Otomatis: Muncul jika bayar < total
+    if (bayar > 0 && bayar < total) {
+      $('#row_jatuh_tempo').slideDown();
+    } else {
+      if ($('#metode_pembayaran').val() !== 'piutang') {
+        $('#row_jatuh_tempo').slideUp();
+      }
+    }
+
+    // Warna kembalian
     if (kembali < 0) {
       $('#kembali_text').css('color', '#ef4444');
     } else {
@@ -324,7 +343,22 @@ $(document).ready(function() {
     $('#hidden_kembali').val(kembali);
   }
 
-  $('#bayar_display').on('input', hitungKembalian);
+  $('#metode_pembayaran').change(function() {
+    hitungKembalian();
+    if ($(this).val() === 'piutang') {
+        $('#row_jatuh_tempo').slideDown();
+    }
+  });
+
+  $('#bayar_display').on('input', function() {
+    let raw = $(this).val().replace(/\D/g, '');
+    if (raw === '') {
+        $(this).val('');
+    } else {
+        $(this).val(new Intl.NumberFormat('id-ID').format(raw));
+    }
+    hitungKembalian();
+  });
 
   // Shortcut F10 untuk checkout
   $(document).keydown(function(e) {

@@ -112,7 +112,19 @@ $q_total = $conn->query("SELECT COUNT(*) AS total FROM penjualan WHERE $where_cl
 $total_rows = $q_total->fetch_assoc()['total'];
 $total_pages = ceil($total_rows / $per_page);
 
-$q_riwayat = $conn->query("SELECT * FROM penjualan WHERE $where_clause ORDER BY tanggal DESC LIMIT $per_page OFFSET $offset");
+$q_riwayat = $conn->query("SELECT p.*, 
+    (SELECT GROUP_CONCAT(DISTINCT metode) 
+     FROM (
+        SELECT id_penjualan, metode_pembayaran as metode FROM penjualan
+        UNION
+        SELECT id_penjualan, metode_pembayaran as metode FROM pembayaran_piutang
+     ) AS all_methods 
+     WHERE all_methods.id_penjualan = p.id_penjualan
+    ) as daftar_metode
+    FROM penjualan p 
+    WHERE $where_clause 
+    ORDER BY p.tanggal DESC 
+    LIMIT $per_page OFFSET $offset");
 
 // === 📊 QUERY SUMMARY DASHBOARD (ALA MEKARI) ===
 // 1. Penagihan Belum Dibayar (Kuning)
@@ -221,6 +233,7 @@ $totalReceived30 = ($dataPayRec['total'] ?? 0) + ($dataSalesCash['total'] ?? 0);
                 <th>No. Invoice</th>
                 <th>Tanggal</th>
                 <th>Pelanggan</th>
+                <th>Metode</th>
                 <th>Sisa Tagihan</th>
                 <th>Total</th>
                 <th>Status</th>
@@ -236,6 +249,23 @@ $totalReceived30 = ($dataPayRec['total'] ?? 0) + ($dataSalesCash['total'] ?? 0);
                   <td><a href="penjualan_detail.php?id=<?= $p['id_penjualan'] ?>" style="color:#3b82f6; font-weight:600;">#INV-<?= $p['id_penjualan'] ?></a></td>
                   <td><?= date('d/m/Y', strtotime($p['tanggal'])) ?></td>
                   <td class="customer-col"><?= htmlspecialchars($p['pelanggan'] ?: '-') ?></td>
+                  <td>
+                    <?php 
+                    $metodes = explode(',', $p['daftar_metode'] ?? 'tunai');
+                    foreach($metodes as $m): 
+                        if ($m == 'piutang' && $p['sisa_piutang'] == 0) continue;
+                        
+                        if ($m == 'transfer') {
+                            $color = '#10b981'; // Hijau
+                        } elseif ($m == 'piutang') {
+                            $color = '#ef4444'; // Merah
+                        } else {
+                            $color = '#3b82f6'; // Biru (Tunai)
+                        }
+                    ?>
+                        <span style="font-size: 10px; font-weight: 800; color: white; background: <?= $color ?>; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; margin-right: 2px;"><?= $m ?></span>
+                    <?php endforeach; ?>
+                  </td>
                   <td>
                     <?php if ($p['sisa_piutang'] > 0): ?>
                       <span class="sisa-tagihan-col">Rp <?= number_format($p['sisa_piutang'], 0, ',', '.') ?></span>

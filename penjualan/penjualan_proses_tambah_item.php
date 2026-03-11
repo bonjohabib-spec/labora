@@ -81,16 +81,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql->execute();
         }
 
-        // 🔁 Update total penjualan & Pelanggan
-        if ($pelanggan !== null) {
-            $updPel = $conn->prepare("UPDATE penjualan SET pelanggan = ?, total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = ?) WHERE id_penjualan = ?");
-            $updPel->bind_param("sii", $pelanggan, $id_penjualan, $id_penjualan);
-            $updPel->execute();
-        } else {
-            $updateTotal = $conn->prepare("UPDATE penjualan SET total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = ?) WHERE id_penjualan = ?");
-            $updateTotal->bind_param("ii", $id_penjualan, $id_penjualan);
-            $updateTotal->execute();
-        }
+        // 🔁 Update total penjualan & Pelanggan (Optimasi query)
+        $updPel = $conn->prepare("
+            UPDATE penjualan 
+            SET pelanggan = COALESCE(?, pelanggan), 
+                total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = ?) 
+            WHERE id_penjualan = ?
+        ");
+        $updPel->bind_param("sii", $pelanggan, $id_penjualan, $id_penjualan);
+        $updPel->execute();
 
         $conn->commit();
 

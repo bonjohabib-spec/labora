@@ -14,20 +14,25 @@ $active_shift = checkShift($conn, $kasir); // Wajib buka kasir
 $id_penjualan = intval($_GET['id'] ?? 0);
 if (!$id_penjualan) die("ID transaksi tidak ditemukan.");
 
-$q = $conn->query("SELECT * FROM penjualan WHERE id_penjualan=$id_penjualan");
-$penjualan = $q->fetch_assoc();
+$q = $conn->prepare("SELECT * FROM penjualan WHERE id_penjualan = ?");
+$q->bind_param("i", $id_penjualan);
+$q->execute();
+$penjualan = $q->get_result()->fetch_assoc();
 if (!$penjualan) die("Data transaksi tidak ditemukan.");
 
 // Hanya ambil barang yang aktif
 $list_barang = $conn->query("SELECT id_barang, nama_barang FROM barang ORDER BY nama_barang ASC");
 
-$detail = $conn->query("
+$stmtDetail = $conn->prepare("
   SELECT d.id, b.nama_barang, v.warna, v.ukuran, d.qty, d.harga_jual, d.subtotal
   FROM detail_penjualan d
   JOIN barang_varian v ON d.id_varian = v.id_varian
   JOIN barang b ON v.id_barang = b.id_barang
-  WHERE d.id_penjualan = $id_penjualan
+  WHERE d.id_penjualan = ?
 ");
+$stmtDetail->bind_param("i", $id_penjualan);
+$stmtDetail->execute();
+$detail = $stmtDetail->get_result();
 ?>
 <!DOCTYPE html>
 <html lang="id">

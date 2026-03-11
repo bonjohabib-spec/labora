@@ -9,56 +9,61 @@ if (!isset($_SESSION['user_role'])) {
 
 $tanggal_awal = isset($_GET['tanggal_awal']) ? $_GET['tanggal_awal'] : date('Y-m-01');
 $tanggal_akhir = isset($_GET['tanggal_akhir']) ? $_GET['tanggal_akhir'] : date('Y-m-t');
-$search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
+$periode = isset($_GET['periode']) ? $_GET['periode'] : 'bulan_ini';
 
 // Paginasi
 $per_page = 10;
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $offset = ($page - 1) * $per_page;
 
-$query_count = "SELECT COUNT(*) as total FROM penjualan WHERE status='selesai' AND DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'";
-if ($search) {
-    $query_count .= " AND pelanggan LIKE '%$search%'";
-}
-$res_count = mysqli_query($conn, $query_count);
-$total_data = mysqli_fetch_assoc($res_count)['total'];
+$query_count = "SELECT COUNT(*) as total FROM penjualan WHERE status='selesai' AND DATE(tanggal) BETWEEN ? AND ?";
+$params = [$tanggal_awal, $tanggal_akhir];
+$types = "ss";
+
+$stmtCount = $conn->prepare($query_count);
+$stmtCount->bind_param($types, ...$params);
+$stmtCount->execute();
+$total_data = $stmtCount->get_result()->fetch_assoc()['total'];
 $total_pages = ceil($total_data / $per_page);
 
-// 1. Ringkasan Laporan (Kartu Utama)
-$query_summary = "SELECT 
-                    SUM(total) as total_omset,
-                    SUM(sisa_piutang) as total_piutang
-                  FROM penjualan 
-                  WHERE status='selesai' 
-                  AND DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'";
-$res_summary = mysqli_query($conn, $query_summary);
-$summ = mysqli_fetch_assoc($res_summary);
-
+// 1. Ringkasan Laporan (Kartu Utama) - Konsolidasi
+$stmtSum = $conn->prepare("
+    SELECT SUM(total) as total_omset, SUM(sisa_piutang) as total_piutang
+    FROM penjualan 
+    WHERE status='selesai' AND DATE(tanggal) BETWEEN ? AND ?
+");
+$stmtSum->bind_param("ss", $tanggal_awal, $tanggal_akhir);
+$stmtSum->execute();
+$summ = $stmtSum->get_result()->fetch_assoc();
 $total_omset = $summ['total_omset'] ?? 0;
 $total_piutang = $summ['total_piutang'] ?? 0;
 
-// Kas Masuk = (Total Omset - Sisa Piutang) - (Cicilan untuk nota di periode ini) + (Semua Cicilan yang masuk di periode ini)
-// Logika: (Omset - Sisa) memberikan total uang yang SUDAH masuk untuk nota tsb sampai detik ini.
-// Karena kita juga menjumlahkan $kas_cicilan secara global, maka cicilan nota baru (yang sudah terhitung di $kas_cicilan) harus kita kurangi di sisi Penjualan/DP.
-$qKasCicilan = $conn->query("SELECT SUM(nominal) as total FROM pembayaran_piutang WHERE DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'");
-$kas_cicilan = $qKasCicilan->fetch_assoc()['total'] ?? 0;
+// Kas Masuk = (Total Omset - Sisa Piutang) - (Cicilan untuk nota periode ini) + (Semua Cicilan periode ini)
+$stmtPay = $conn->prepare("SELECT SUM(nominal) as total FROM pembayaran_piutang WHERE DATE(tanggal) BETWEEN ? AND ?");
+$stmtPay->bind_param("ss", $tanggal_awal, $tanggal_akhir);
+$stmtPay->execute();
+$kas_cicilan = $stmtPay->get_result()->fetch_assoc()['total'] ?? 0;
 
-$qCicilanNotaBaru = $conn->query("SELECT SUM(nominal) FROM pembayaran_piutang 
-                                  WHERE DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir' 
-                                  AND id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir')");
-$cicilan_nota_baru = $qCicilanNotaBaru->fetch_row()[0] ?? 0;
+$stmtNotaBaru = $conn->prepare("
+    SELECT SUM(nominal) FROM pembayaran_piutang 
+    WHERE DATE(tanggal) BETWEEN ? AND ? 
+    AND id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE DATE(tanggal) BETWEEN ? AND ?)
+");
+$stmtNotaBaru->bind_param("ssss", $tanggal_awal, $tanggal_akhir, $tanggal_awal, $tanggal_akhir);
+$stmtNotaBaru->execute();
+$cicilan_nota_baru = $stmtNotaBaru->get_result()->fetch_row()[0] ?? 0;
 
 $total_kas_masuk = ($total_omset - $total_piutang) - $cicilan_nota_baru + $kas_cicilan;
 
 // 2. Data Penjualan Terperinci
 $query_detail = "SELECT * FROM penjualan 
                  WHERE status='selesai' 
-                 AND DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'";
-if ($search) {
-    $query_detail .= " AND pelanggan LIKE '%$search%'";
-}
-$query_detail .= " ORDER BY tanggal DESC LIMIT $per_page OFFSET $offset";
-$res_detail = mysqli_query($conn, $query_detail);
+                 AND DATE(tanggal) BETWEEN ? AND ?
+                 ORDER BY tanggal DESC LIMIT ? OFFSET ?";
+$stmtDetail = $conn->prepare($query_detail);
+$stmtDetail->bind_param("ssii", $tanggal_awal, $tanggal_akhir, $per_page, $offset);
+$stmtDetail->execute();
+$res_detail = $stmtDetail->get_result();
 
 // 2. Riset: Pelanggan Terbanyak (berdasarkan total belanja)
 $query_top_customers = "SELECT pelanggan, COUNT(*) as transaksi, SUM(total) as total_belanja 
@@ -95,6 +100,29 @@ $query_top_items = "SELECT b.nama_barang, v.warna, v.ukuran, SUM(dp.qty) as tota
                     ORDER BY total_qty DESC LIMIT $item_per_page OFFSET $item_offset";
 $res_items = mysqli_query($conn, $query_top_items);
 
+// 4. Perincian Kas Masuk (Untuk Modal)
+// A. Kas dari Penjualan Baru (Cash/DP)
+$stmtKasPenjualan = $conn->prepare("
+    SELECT id_penjualan, tanggal, pelanggan, (total - sisa_piutang) as cash_dp 
+    FROM penjualan 
+    WHERE status='selesai' 
+    AND DATE(tanggal) BETWEEN ? AND ? 
+    AND (total - sisa_piutang) > 0
+");
+$stmtKasPenjualan->bind_param("ss", $tanggal_awal, $tanggal_akhir);
+$stmtKasPenjualan->execute();
+$res_kas_penjualan = $stmtKasPenjualan->get_result();
+
+// B. Kas dari Pembayaran Piutang (Cicilan)
+$stmtKasCicilan = $conn->prepare("
+    SELECT pp.id_penjualan, pp.tanggal, pp.nominal, p.pelanggan 
+    FROM pembayaran_piutang pp
+    JOIN penjualan p ON pp.id_penjualan = p.id_penjualan
+    WHERE DATE(pp.tanggal) BETWEEN ? AND ?
+");
+$stmtKasCicilan->bind_param("ss", $tanggal_awal, $tanggal_akhir);
+$stmtKasCicilan->execute();
+$res_kas_cicilan = $stmtKasCicilan->get_result();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -122,15 +150,24 @@ $res_items = mysqli_query($conn, $query_top_items);
         <div class="filter-group">
           <div class="input-control">
             <label>Dari Tanggal</label>
-            <input type="date" name="tanggal_awal" value="<?= $tanggal_awal ?>">
+            <input type="date" name="tanggal_awal" id="tanggal_awal" value="<?= $tanggal_awal ?>">
           </div>
           <div class="input-control">
             <label>Sampai Tanggal</label>
-            <input type="date" name="tanggal_akhir" value="<?= $tanggal_akhir ?>">
+            <input type="date" name="tanggal_akhir" id="tanggal_akhir" value="<?= $tanggal_akhir ?>">
           </div>
           <div class="input-control">
-            <label>Cari Pelanggan</label>
-            <input type="text" name="search" placeholder="Nama pelanggan..." value="<?= htmlspecialchars($search) ?>">
+            <label>Periode</label>
+            <select name="periode" id="periodeSelect">
+              <option value="hari_ini" <?= $periode=='hari_ini'?'selected':'' ?>>Hari ini</option>
+              <option value="kemarin" <?= $periode=='kemarin'?'selected':'' ?>>Kemarin</option>
+              <option value="pekan_ini" <?= $periode=='pekan_ini'?'selected':'' ?>>Pekan ini</option>
+              <option value="pekan_lalu" <?= $periode=='pekan_lalu'?'selected':'' ?>>Pekan lalu</option>
+              <option value="bulan_ini" <?= $periode=='bulan_ini'?'selected':'' ?>>Bulan ini</option>
+              <option value="bulan_lalu" <?= $periode=='bulan_lalu'?'selected':'' ?>>Bulan lalu</option>
+              <option value="tahun_ini" <?= $periode=='tahun_ini'?'selected':'' ?>>Tahun ini</option>
+              <option value="kustom" <?= $periode=='kustom'?'selected':'' ?>>Kustom</option>
+            </select>
           </div>
           <button type="submit" class="btn-filter">Tampilkan</button>
         </div>
@@ -146,12 +183,12 @@ $res_items = mysqli_query($conn, $query_top_items);
             <span class="stat-desc">Volume penjualan kotor</span>
           </div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="openModalKas()" style="cursor: pointer;" title="Klik untuk rincian">
           <div class="stat-icon" style="background: #f0fdf4; color: #22c55e;">💵</div>
           <div class="stat-info">
             <span class="stat-label">Total Kas Masuk</span>
             <span class="stat-value">Rp <?= number_format($total_kas_masuk, 0, ',', '.') ?></span>
-            <span class="stat-desc">Tunai + DP + Cicilan</span>
+            <span class="stat-desc">Tunai + DP + Cicilan ⓘ</span>
           </div>
         </div>
         <div class="stat-card">
@@ -229,7 +266,7 @@ $res_items = mysqli_query($conn, $query_top_items);
             <div class="page-nav">
               <?php 
               // Base URL harus membawa semua parameter agar tidak hilang saat navigasi
-              $item_base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&search=$search&page=$page&item_page=";
+              $item_base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&periode=$periode&page=$page&item_page=";
               ?>
               <?php if ($item_page > 1): ?>
                 <a href="<?= $item_base_url ?>1" class="page-btn" style="width:24px; height:24px; font-size:12px;" title="Awal">«</a>
@@ -288,7 +325,7 @@ $res_items = mysqli_query($conn, $query_top_items);
           <span class="page-info">Halaman <?= $page ?> / <?= $total_pages ?></span>
           <div class="page-nav">
             <?php 
-            $base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&search=$search&item_page=$item_page&page=";
+            $base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&periode=$periode&item_page=$item_page&page=";
             ?>
             <?php if ($page > 1): ?>
               <a href="<?= $base_url ?>1" class="page-btn" title="Awal">«</a>
@@ -314,5 +351,169 @@ $res_items = mysqli_query($conn, $query_top_items);
     </div>
   </div>
 </div>
+<!-- MODAL PERINCIAN KAS MASUK -->
+<div id="modalKas" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🔍 Perincian Kas Masuk</h3>
+      <button class="btn-close" onclick="closeModalKas()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="perincian-section">
+        <label>📦 Dari Penjualan Baru (Cash/DP)</label>
+        <table class="table-mini">
+          <thead>
+            <tr>
+              <th>Nota</th>
+              <th>Pelanggan</th>
+              <th style="text-align: right;">Nominal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php 
+            $sub_penjualan = 0;
+            while($kp = $res_kas_penjualan->fetch_assoc()): 
+              $sub_penjualan += $kp['cash_dp'];
+            ?>
+            <tr>
+              <td>#INV-<?= $kp['id_penjualan'] ?></td>
+              <td><?= htmlspecialchars($kp['pelanggan'] ?: '-') ?></td>
+              <td style="text-align: right;">Rp <?= number_format($kp['cash_dp'], 0, ',', '.') ?></td>
+            </tr>
+            <?php endwhile; ?>
+            <tr style="background: #f8fafc; font-weight: bold;">
+              <td colspan="2">Subtotal Penjualan Baru</td>
+              <td style="text-align: right;">Rp <?= number_format($sub_penjualan, 0, ',', '.') ?></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="perincian-section" style="margin-top: 20px;">
+        <label>💳 Dari Pembayaran Cicilan (Piutang)</label>
+        <table class="table-mini">
+          <thead>
+            <tr>
+              <th>Nota</th>
+              <th>Pelanggan</th>
+              <th style="text-align: right;">Nominal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php 
+            $sub_cicilan = 0;
+            while($kc = $res_kas_cicilan->fetch_assoc()): 
+              $sub_cicilan += $kc['nominal'];
+            ?>
+            <tr>
+              <td>#INV-<?= $kc['id_penjualan'] ?></td>
+              <td><?= htmlspecialchars($kc['pelanggan'] ?: '-') ?></td>
+              <td style="text-align: right;">Rp <?= number_format($kc['nominal'], 0, ',', '.') ?></td>
+            </tr>
+            <?php endwhile; ?>
+            <tr style="background: #f8fafc; font-weight: bold;">
+              <td colspan="2">Subtotal Cicilan Masuk</td>
+              <td style="text-align: right;">Rp <?= number_format($sub_cicilan, 0, ',', '.') ?></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="total-summary-modal">
+        <span>Grand Total Kas Masuk:</span>
+        <strong>Rp <?= number_format($sub_penjualan + $sub_cicilan, 0, ',', '.') ?></strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModalKas() {
+  document.getElementById('modalKas').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeModalKas() {
+  document.getElementById('modalKas').classList.remove('active');
+  document.body.style.overflow = 'auto';
+}
+
+// LOGIKA FILTER PERIODE
+const periodeSelect = document.getElementById('periodeSelect');
+const tglAwal = document.getElementById('tanggal_awal');
+const tglAkhir = document.getElementById('tanggal_akhir');
+
+periodeSelect.addEventListener('change', function() {
+    const period = this.value;
+    const now = new Date();
+    let start, end;
+
+    switch(period) {
+        case 'hari_ini':
+            start = end = now;
+            break;
+        case 'kemarin':
+            const kemarian = new Date();
+            kemarian.setDate(now.getDate() - 1);
+            start = end = kemarian;
+            break;
+        case 'pekan_ini':
+            const firstDay = now.getDate() - now.getDay();
+            start = new Date(now.setDate(firstDay));
+            end = new Date(now.setDate(firstDay + 6));
+            break;
+        case 'pekan_lalu':
+            const lastWeek = new Date();
+            lastWeek.setDate(now.getDate() - 7);
+            const firstDayLalu = lastWeek.getDate() - lastWeek.getDay();
+            start = new Date(lastWeek.setDate(firstDayLalu));
+            end = new Date(lastWeek.setDate(firstDayLalu + 6));
+            break;
+        case 'bulan_ini':
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            break;
+        case 'bulan_lalu':
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            end = new Date(now.getFullYear(), now.getMonth(), 0);
+            break;
+        case 'tahun_ini':
+            start = new Date(now.getFullYear(), 0, 1);
+            end = new Date(now.getFullYear(), 11, 31);
+            break;
+        default:
+            return;
+    }
+
+    tglAwal.value = formatDate(start);
+    tglAkhir.value = formatDate(end);
+});
+
+function formatDate(date) {
+    const d = new Date(date);
+    let month = '' + (d.getMonth() + 1);
+    let day = '' + d.getDate();
+    const year = d.getFullYear();
+
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+
+    return [year, month, day].join('-');
+}
+
+[tglAwal, tglAkhir].forEach(el => {
+    el.addEventListener('change', () => {
+        periodeSelect.value = 'kustom';
+    });
+});
+
+// Close on click outside
+window.onclick = function(event) {
+  let modal = document.getElementById('modalKas');
+  if (event.target == modal) {
+    closeModalKas();
+  }
+}
+</script>
+
 </body>
 </html>

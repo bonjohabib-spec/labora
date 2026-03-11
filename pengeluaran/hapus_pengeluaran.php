@@ -9,12 +9,13 @@ if (!isset($_SESSION['user_role'])) {
 
 if (isset($_GET['id'])) {
     $id = intval($_GET['id']);
-    $query = "DELETE FROM pengeluaran WHERE id_pengeluaran = $id";
+    $stmt = $conn->prepare("DELETE FROM pengeluaran WHERE id_pengeluaran = ?");
+    $stmt->bind_param("i", $id);
     
-    if (mysqli_query($conn, $query)) {
+    if ($stmt->execute()) {
         echo "<script>alert('✅ Pengeluaran berhasil dihapus.'); window.location='pengeluaran.php';</script>";
     } else {
-        echo "<script>alert('❌ Gagal hapus: " . mysqli_error($conn) . "'); window.location='pengeluaran.php';</script>";
+        echo "<script>alert('❌ Gagal hapus: " . $conn->error . "'); window.location='pengeluaran.php';</script>";
     }
 } else {
     header("Location: pengeluaran.php");

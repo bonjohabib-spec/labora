@@ -8,19 +8,19 @@ if (!isset($_SESSION['user_role'])) {
 }
 
 if (isset($_POST['simpan'])) {
-    $tanggal   = mysqli_real_escape_string($conn, $_POST['tanggal']);
-    $kategori  = mysqli_real_escape_string($conn, $_POST['kategori']);
-    $nominal   = mysqli_real_escape_string($conn, $_POST['nominal']);
-    $deskripsi = mysqli_real_escape_string($conn, $_POST['deskripsi']);
+    $tanggal   = $_POST['tanggal'];
+    $kategori  = $_POST['kategori'];
+    $nominal   = floatval($_POST['nominal']);
+    $deskripsi = $_POST['deskripsi'];
     $kasir     = $_SESSION['username'] ?? 'admin';
 
-    $query = "INSERT INTO pengeluaran (tanggal, kategori, deskripsi, nominal, dibuat_oleh) 
-              VALUES ('$tanggal', '$kategori', '$deskripsi', '$nominal', '$kasir')";
+    $stmt = $conn->prepare("INSERT INTO pengeluaran (tanggal, kategori, deskripsi, nominal, dibuat_oleh) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssis", $tanggal, $kategori, $deskripsi, $nominal, $kasir);
 
-    if (mysqli_query($conn, $query)) {
+    if ($stmt->execute()) {
         echo "<script>alert('✅ Pengeluaran berhasil disimpan!'); window.location='pengeluaran.php';</script>";
     } else {
-        echo "<script>alert('❌ Gagal simpan: " . mysqli_error($conn) . "'); window.history.back();</script>";
+        echo "<script>alert('❌ Gagal simpan: " . $conn->error . "'); window.history.back();</script>";
     }
 } else {
     header("Location: pengeluaran.php");

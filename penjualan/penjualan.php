@@ -89,8 +89,8 @@ if (isset($_POST['buat_transaksi']) || (isset($_GET['action']) && $_GET['action'
 // ==========================
 // 📜 AMBIL DATA & BERSIHKAN DRAFT
 // ==========================
-// Hapus transaksi yang tidak diselesaikan oleh kasir saat ini (kalau belum selesai dianggap tidak ada)
-$conn->query("DELETE FROM detail_penjualan WHERE id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE status = 'aktif' AND kasir = '$kasir')");
+// Hapus transaksi yang tidak diselesaikan (draft kosong)
+$conn->query("DELETE FROM detail_penjualan WHERE status = 'aktif' AND id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE status = 'aktif' AND kasir = '$kasir')");
 $conn->query("DELETE FROM penjualan WHERE status = 'aktif' AND kasir = '$kasir'");
 
 // Paginasi & Filter
@@ -126,24 +126,27 @@ $q_riwayat = $conn->query("SELECT p.*,
     ORDER BY p.tanggal DESC 
     LIMIT $per_page OFFSET $offset");
 
-// === 📊 QUERY SUMMARY DASHBOARD (ALA MEKARI) ===
-// 1. Penagihan Belum Dibayar (Kuning)
-$qUnpaid = $conn->query("SELECT SUM(sisa_piutang) AS total, COUNT(*) AS jml FROM penjualan WHERE sisa_piutang > 0 AND status = 'selesai'");
-$dataUnpaid = $qUnpaid->fetch_assoc();
+// === 📊 QUERY SUMMARY DASHBOARD (ALA MEKARI) - KONSOLIDASI ===
+$today = date('Y-m-d');
+$last30 = date('Y-m-d H:i:s', strtotime('-30 days'));
 
-// 2. Penagihan Telat Dibayar (Merah)
-$todayStr = date('Y-m-d');
-$qOverdue = $conn->query("SELECT SUM(sisa_piutang) AS total, COUNT(*) AS jml FROM penjualan WHERE sisa_piutang > 0 AND status = 'selesai' AND jatuh_tempo IS NOT NULL AND jatuh_tempo < '$todayStr'");
-$dataOverdue = $qOverdue->fetch_assoc();
+$qSummary = $conn->query("
+    SELECT 
+        SUM(CASE WHEN sisa_piutang > 0 AND status = 'selesai' THEN sisa_piutang ELSE 0 END) as total_unpaid,
+        COUNT(CASE WHEN sisa_piutang > 0 AND status = 'selesai' THEN 1 END) as jml_unpaid,
+        SUM(CASE WHEN sisa_piutang > 0 AND status = 'selesai' AND jatuh_tempo < '$today' THEN sisa_piutang ELSE 0 END) as total_overdue,
+        COUNT(CASE WHEN sisa_piutang > 0 AND status = 'selesai' AND jatuh_tempo < '$today' THEN 1 END) as jml_overdue,
+        (SELECT SUM(total - sisa_piutang) FROM penjualan WHERE status = 'selesai' AND tanggal >= '$last30') + 
+        (SELECT COALESCE(SUM(nominal), 0) FROM pembayaran_piutang WHERE tanggal >= '$last30') as cash_30
+    FROM penjualan
+");
+$dataSum = $qSummary->fetch_assoc();
 
-// 3. Pelunasan Diterima 30 Hari Terakhir (Hijau)
-$last30Days = date('Y-m-d H:i:s', strtotime('-30 days'));
-$qPayRec = $conn->query("SELECT SUM(nominal) AS total FROM pembayaran_piutang WHERE tanggal >= '$last30Days'");
-$dataPayRec = $qPayRec->fetch_assoc();
-// Tambah Tunai/DP dari penjualan langsung 30 hari terakhir
-$qSalesCash = $conn->query("SELECT SUM(total - sisa_piutang) AS total FROM penjualan WHERE status = 'selesai' AND tanggal >= '$last30Days'");
-$dataSalesCash = $qSalesCash->fetch_assoc();
-$totalReceived30 = ($dataPayRec['total'] ?? 0) + ($dataSalesCash['total'] ?? 0);
+$totalUnpaid     = $dataSum['total_unpaid'] ?? 0;
+$jmlUnpaid       = $dataSum['jml_unpaid'] ?? 0;
+$totalOverdue    = $dataSum['total_overdue'] ?? 0;
+$jmlOverdue      = $dataSum['jml_overdue'] ?? 0;
+$totalReceived30 = $dataSum['cash_30'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -184,9 +187,9 @@ $totalReceived30 = ($dataPayRec['total'] ?? 0) + ($dataSalesCash['total'] ?? 0);
             <a href="?filter=unpaid" class="summary-card card-unpaid <?= $filter == 'unpaid' ? 'active-filter' : '' ?>" style="text-decoration: none;">
               <div class="summary-header">
                 <span class="summary-title">Belum Lunas</span>
-                <span class="summary-badge"><?= $dataUnpaid['jml'] ?></span>
+                <span class="summary-badge"><?= $jmlUnpaid ?></span>
               </div>
-              <div class="summary-value">Rp <?= number_format($dataUnpaid['total'] ?? 0, 0, ',', '.') ?></div>
+              <div class="summary-value">Rp <?= number_format($totalUnpaid, 0, ',', '.') ?></div>
               <span class="summary-label">Piutang Pelanggan</span>
             </a>
 
@@ -194,9 +197,9 @@ $totalReceived30 = ($dataPayRec['total'] ?? 0) + ($dataSalesCash['total'] ?? 0);
             <a href="?filter=overdue" class="summary-card card-overdue <?= $filter == 'overdue' ? 'active-filter' : '' ?>" style="text-decoration: none;">
               <div class="summary-header">
                 <span class="summary-title">Jatuh Tempo</span>
-                <span class="summary-badge"><?= $dataOverdue['jml'] ?></span>
+                <span class="summary-badge"><?= $jmlOverdue ?></span>
               </div>
-              <div class="summary-value">Rp <?= number_format($dataOverdue['total'] ?? 0, 0, ',', '.') ?></div>
+              <div class="summary-value">Rp <?= number_format($totalOverdue, 0, ',', '.') ?></div>
               <span class="summary-label">Tunggakan Telat</span>
             </a>
 

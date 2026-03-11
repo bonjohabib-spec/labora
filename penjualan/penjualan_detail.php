@@ -60,16 +60,6 @@ if (isset($_POST['update_item'])) {
     $qty_baru = intval($_POST['qty']);
     $harga_baru = floatval($_POST['harga_jual']);
 
-    // Ambil data item sebelumnya
-    $stmt = $conn->prepare("
-        SELECT dp.*, v.stok AS stok_saat_ini, v.id_varian, b.nama_barang
-        FROM detail_pen_detail d
-        JOIN detail_penjualan dp ON d.id = dp.id
-        JOIN barang_varian v ON dp.id_varian = v.id_varian
-        JOIN barang b ON v.id_barang = b.id_barang
-        WHERE dp.id = ?
-    ");
-    // Oups, query di atas sepertinya salah ketik dari sebelumnya. Saya perbaiki yang standar.
     $stmt = $conn->prepare("
         SELECT dp.*, v.stok AS stok_saat_ini, v.id_varian
         FROM detail_penjualan dp
@@ -103,12 +93,13 @@ if (isset($_POST['update_item'])) {
                 $up->bind_param("iidi", $qty_baru, $harga_baru, $subtotal_baru, $id_detail);
                 $up->execute();
                 
-                // Update Total & Sisa Piutang di Penjualan Utama
-                $upTotal = $conn->prepare("UPDATE penjualan SET total = (SELECT SUM(subtotal) FROM detail_penjualan WHERE id_penjualan = ?) WHERE id_penjualan = ?");
-                $upTotal->bind_param("ii", $id, $id);
-                $upTotal->execute();
-
-                $conn->query("UPDATE penjualan SET sisa_piutang = GREATEST(0, total - jumlah_bayar) WHERE id_penjualan = $id");
+                // Update Total & Sisa Piutang (Gabungkan query)
+                $conn->query("
+                    UPDATE penjualan 
+                    SET total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = $id),
+                        sisa_piutang = GREATEST(0, (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = $id) - jumlah_bayar)
+                    WHERE id_penjualan = $id
+                ");
 
                 $conn->commit();
                 header("Location: penjualan_detail.php?id=$id");
@@ -143,12 +134,13 @@ if (isset($_GET['hapus_item'])) {
             $del->bind_param("i", $id_detail);
             $del->execute();
             
-            // Update Total & Sisa Piutang di Penjualan Utama
-            $upTotal = $conn->prepare("UPDATE penjualan SET total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = ?) WHERE id_penjualan = ?");
-            $upTotal->bind_param("ii", $id, $id);
-            $upTotal->execute();
-
-            $conn->query("UPDATE penjualan SET sisa_piutang = GREATEST(0, total - jumlah_bayar) WHERE id_penjualan = $id");
+            // Update Total & Sisa Piutang (Gabungkan query)
+            $conn->query("
+                UPDATE penjualan 
+                SET total = (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = $id),
+                    sisa_piutang = GREATEST(0, (SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan WHERE id_penjualan = $id) - jumlah_bayar)
+                WHERE id_penjualan = $id
+            ");
 
             $conn->commit();
             header("Location: penjualan_detail.php?id=$id");

@@ -10,11 +10,16 @@ if (!isset($_SESSION['user_role'])) {
 
 $tanggal = isset($_GET['tanggal']) ? $_GET['tanggal'] : date('Y-m-d');
 
-// Query data pengeluaran
-$query = mysqli_query($conn, "SELECT * FROM pengeluaran WHERE DATE(tanggal) = '$tanggal' ORDER BY tanggal DESC");
+// Query data pengeluaran (Prepared Statement)
+$stmt = $conn->prepare("SELECT * FROM pengeluaran WHERE DATE(tanggal) = ? ORDER BY tanggal DESC");
+$stmt->bind_param("s", $tanggal);
+$stmt->execute();
+$query = $stmt->get_result();
 
-$totalQuery = mysqli_query($conn, "SELECT SUM(nominal) AS total FROM pengeluaran WHERE DATE(tanggal) = '$tanggal'");
-$total = mysqli_fetch_assoc($totalQuery)['total'] ?? 0;
+$stmtTotal = $conn->prepare("SELECT SUM(nominal) AS total FROM pengeluaran WHERE DATE(tanggal) = ?");
+$stmtTotal->bind_param("s", $tanggal);
+$stmtTotal->execute();
+$total = $stmtTotal->get_result()->fetch_assoc()['total'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="id">

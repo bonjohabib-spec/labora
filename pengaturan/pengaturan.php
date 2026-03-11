@@ -19,19 +19,15 @@ $store = $qStore->fetch_assoc();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // A. Update Profil Toko
     if (isset($_POST['update_store'])) {
-        $nama = mysqli_real_escape_string($conn, $_POST['nama_toko']);
-        $alamat = mysqli_real_escape_string($conn, $_POST['alamat']);
-        $telp = mysqli_real_escape_string($conn, $_POST['telepon']);
-        $footer = mysqli_real_escape_string($conn, $_POST['footer_nota']);
+        $nama   = $_POST['nama_toko'];
+        $alamat = $_POST['alamat'];
+        $telp   = $_POST['telepon'];
+        $footer = $_POST['footer_nota'];
 
-        $sql = "UPDATE pengaturan SET 
-                nama_toko = '$nama', 
-                alamat = '$alamat', 
-                telepon = '$telp', 
-                footer_nota = '$footer' 
-                WHERE id = 1";
+        $stmt = $conn->prepare("UPDATE pengaturan SET nama_toko=?, alamat=?, telepon=?, footer_nota=? WHERE id=1");
+        $stmt->bind_param("ssss", $nama, $alamat, $telp, $footer);
         
-        if ($conn->query($sql)) {
+        if ($stmt->execute()) {
             $success = "Profil toko berhasil diperbarui!";
             // Refresh data
             $qStore = $conn->query("SELECT * FROM pengaturan WHERE id = 1");
@@ -46,8 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_pass = $_POST['new_password'];
         if (!empty($new_pass)) {
             $user = $_SESSION['username'];
-            $sql = "UPDATE users SET password = '$new_pass' WHERE username = '$user'";
-            if ($conn->query($sql)) {
+            $stmt = $conn->prepare("UPDATE users SET password = ? WHERE username = ?");
+            $stmt->bind_param("ss", $new_pass, $user);
+            if ($stmt->execute()) {
                 $success = "Password berhasil diperbarui!";
             } else {
                 $error = "Gagal memperbarui password.";
@@ -59,15 +56,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // C. Tambah User (Hanya Owner)
     if (isset($_POST['add_user']) && $_SESSION['user_role'] === 'owner') {
-        $user_new = mysqli_real_escape_string($conn, $_POST['username_new']);
-        $pass_new = mysqli_real_escape_string($conn, $_POST['password_new']);
+        $user_new = $_POST['username_new'];
+        $pass_new = $_POST['password_new'];
         $role_new = $_POST['role_new'];
         
-        $check = $conn->query("SELECT id FROM users WHERE username = '$user_new'");
-        if ($check->num_rows > 0) {
+        $check = $conn->prepare("SELECT id FROM users WHERE username = ?");
+        $check->bind_param("s", $user_new);
+        $check->execute();
+        if ($check->get_result()->num_rows > 0) {
             $error = "Username sudah terdaftar!";
         } else {
-            if ($conn->query("INSERT INTO users (username, password, role) VALUES ('$user_new', '$pass_new', '$role_new')")) {
+            $stmt = $conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
+            $stmt->bind_param("sss", $user_new, $pass_new, $role_new);
+            if ($stmt->execute()) {
                 $success = "User baru berhasil ditambahkan!";
             } else {
                 $error = "Gagal menambahkan user.";
@@ -80,35 +81,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (isset($_GET['hapus_user']) && $_SESSION['user_role'] === 'owner') {
     $id_hapus = intval($_GET['hapus_user']);
     $currentUser = $_SESSION['username'];
-    $checkSelf = $conn->query("SELECT id FROM users WHERE username = '$currentUser'")->fetch_assoc();
     
-    if ($id_hapus == $checkSelf['id']) {
-        $error = "Anda tidak bisa menghapus akun sendiri!";
-    } else {
-        // Ambil username user yang akan dihapus
-        $userToDelete = $conn->query("SELECT username FROM users WHERE id = $id_hapus")->fetch_assoc();
-        
-        if ($userToDelete) {
-            $oldUsername = $conn->real_escape_string($userToDelete['username']);
-            $safeCurrentUser = $conn->real_escape_string($currentUser);
-            
+    // Ambil detail user yang akan dihapus
+    $stmtUser = $conn->prepare("SELECT id, username FROM users WHERE id = ?");
+    $stmtUser->bind_param("i", $id_hapus);
+    $stmtUser->execute();
+    $userToDelete = $stmtUser->get_result()->fetch_assoc();
+
+    if ($userToDelete) {
+        if ($userToDelete['username'] === $currentUser) {
+            $error = "Anda tidak bisa menghapus akun sendiri!";
+        } else {
+            $oldUsername = $userToDelete['username'];
+
             $conn->begin_transaction();
             try {
                 // Re-assign semua data terkait ke user yang sedang login
-                $conn->query("UPDATE pengeluaran SET dibuat_oleh = '$safeCurrentUser' WHERE dibuat_oleh = '$oldUsername'");
-                $conn->query("UPDATE penjualan SET kasir = '$safeCurrentUser' WHERE kasir = '$oldUsername'");
+                $upd1 = $conn->prepare("UPDATE pengeluaran SET dibuat_oleh = ? WHERE dibuat_oleh = ?");
+                $upd1->bind_param("ss", $currentUser, $oldUsername);
+                $upd1->execute();
+
+                $upd2 = $conn->prepare("UPDATE penjualan SET kasir = ? WHERE kasir = ?");
+                $upd2->bind_param("ss", $currentUser, $oldUsername);
+                $upd2->execute();
                 
                 // Baru hapus user
-                $conn->query("DELETE FROM users WHERE id = $id_hapus");
+                $del = $conn->prepare("DELETE FROM users WHERE id = ?");
+                $del->bind_param("i", $id_hapus);
+                $del->execute();
+
                 $conn->commit();
                 $success = "User '$oldUsername' berhasil dihapus! Data transaksi dialihkan ke akun Anda.";
             } catch (Exception $e) {
                 $conn->rollback();
                 $error = "Gagal menghapus user: " . $e->getMessage();
             }
-        } else {
-            $error = "User tidak ditemukan.";
         }
+    } else {
+        $error = "User tidak ditemukan.";
     }
 }
 ?><!DOCTYPE html>

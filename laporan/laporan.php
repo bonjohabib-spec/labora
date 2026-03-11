@@ -11,25 +11,28 @@ if (!isset($_SESSION['user_role'])) {
 // Ambil filter tanggal jika ada
 $tanggal_awal = isset($_GET['tanggal_awal']) ? $_GET['tanggal_awal'] : date('Y-m-01');
 $tanggal_akhir = isset($_GET['tanggal_akhir']) ? $_GET['tanggal_akhir'] : date('Y-m-t');
+$periode = isset($_GET['periode']) ? $_GET['periode'] : 'bulan_ini';
 
-// Total omzet (total penjualan)
-$query_penjualan = mysqli_query($conn, "
+// 1. Total Omzet (total penjualan)
+$stmtOmzet = $conn->prepare("
     SELECT SUM(total) AS total_omzet 
     FROM penjualan 
-    WHERE DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'
+    WHERE DATE(tanggal) BETWEEN ? AND ?
       AND status = 'selesai'
 ");
-$data_penjualan = mysqli_fetch_assoc($query_penjualan);
-$total_omzet = $data_penjualan['total_omzet'] ?? 0;
+$stmtOmzet->bind_param("ss", $tanggal_awal, $tanggal_akhir);
+$stmtOmzet->execute();
+$total_omzet = $stmtOmzet->get_result()->fetch_assoc()['total_omzet'] ?? 0;
 
-// Total pengeluaran
-$query_pengeluaran = mysqli_query($conn, "
+// 2. Total Pengeluaran
+$stmtExp = $conn->prepare("
     SELECT SUM(nominal) AS total_pengeluaran 
     FROM pengeluaran 
-    WHERE DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'
+    WHERE DATE(tanggal) BETWEEN ? AND ?
 ");
-$data_pengeluaran = mysqli_fetch_assoc($query_pengeluaran);
-$total_pengeluaran = $data_pengeluaran['total_pengeluaran'] ?? 0;
+$stmtExp->bind_param("ss", $tanggal_awal, $tanggal_akhir);
+$stmtExp->execute();
+$total_pengeluaran = $stmtExp->get_result()->fetch_assoc()['total_pengeluaran'] ?? 0;
 
 // Rincian Penjualan
 $query_rincian_penjualan = mysqli_query($conn, "
@@ -75,11 +78,24 @@ $laba_bersih = $total_omzet - $total_pengeluaran;
         <form action="" method="GET" class="filter-form">
           <div class="form-group">
             <label>Mulai Tanggal</label>
-            <input type="date" name="tanggal_awal" value="<?= $tanggal_awal ?>">
+            <input type="date" name="tanggal_awal" id="tanggal_awal" value="<?= $tanggal_awal ?>">
           </div>
           <div class="form-group">
             <label>Sampai Tanggal</label>
-            <input type="date" name="tanggal_akhir" value="<?= $tanggal_akhir ?>">
+            <input type="date" name="tanggal_akhir" id="tanggal_akhir" value="<?= $tanggal_akhir ?>">
+          </div>
+          <div class="form-group">
+            <label>Periode</label>
+            <select name="periode" id="periodeSelect">
+              <option value="hari_ini" <?= $periode=='hari_ini'?'selected':'' ?>>Hari ini</option>
+              <option value="kemarin" <?= $periode=='kemarin'?'selected':'' ?>>Kemarin</option>
+              <option value="pekan_ini" <?= $periode=='pekan_ini'?'selected':'' ?>>Pekan ini</option>
+              <option value="pekan_lalu" <?= $periode=='pekan_lalu'?'selected':'' ?>>Pekan lalu</option>
+              <option value="bulan_ini" <?= $periode=='bulan_ini'?'selected':'' ?>>Bulan ini</option>
+              <option value="bulan_lalu" <?= $periode=='bulan_lalu'?'selected':'' ?>>Bulan lalu</option>
+              <option value="tahun_ini" <?= $periode=='tahun_ini'?'selected':'' ?>>Tahun ini</option>
+              <option value="kustom" <?= $periode=='kustom'?'selected':'' ?>>Kustom</option>
+            </select>
           </div>
           <button type="submit">Filter Laporan</button>
         </form>
@@ -127,5 +143,75 @@ $laba_bersih = $total_omzet - $total_pengeluaran;
       </div> <!-- .page-content -->
     </div> <!-- .main-content -->
   </div> <!-- .container -->
+
+<script>
+const periodeSelect = document.getElementById('periodeSelect');
+const tglAwal = document.getElementById('tanggal_awal');
+const tglAkhir = document.getElementById('tanggal_akhir');
+
+periodeSelect.addEventListener('change', function() {
+    const period = this.value;
+    const now = new Date();
+    let start, end;
+
+    switch(period) {
+        case 'hari_ini':
+            start = end = now;
+            break;
+        case 'kemarin':
+            const kemarian = new Date();
+            kemarian.setDate(now.getDate() - 1);
+            start = end = kemarian;
+            break;
+        case 'pekan_ini':
+            const firstDay = now.getDate() - now.getDay();
+            start = new Date(now.setDate(firstDay));
+            end = new Date(now.setDate(firstDay + 6));
+            break;
+        case 'pekan_lalu':
+            const lastWeek = new Date();
+            lastWeek.setDate(now.getDate() - 7);
+            const firstDayLalu = lastWeek.getDate() - lastWeek.getDay();
+            start = new Date(lastWeek.setDate(firstDayLalu));
+            end = new Date(lastWeek.setDate(firstDayLalu + 6));
+            break;
+        case 'bulan_ini':
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            break;
+        case 'bulan_lalu':
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            end = new Date(now.getFullYear(), now.getMonth(), 0);
+            break;
+        case 'tahun_ini':
+            start = new Date(now.getFullYear(), 0, 1);
+            end = new Date(now.getFullYear(), 11, 31);
+            break;
+        default:
+            return;
+    }
+
+    tglAwal.value = formatDate(start);
+    tglAkhir.value = formatDate(end);
+});
+
+function formatDate(date) {
+    const d = new Date(date);
+    let month = '' + (d.getMonth() + 1);
+    let day = '' + d.getDate();
+    const year = d.getFullYear();
+
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+
+    return [year, month, day].join('-');
+}
+
+[tglAwal, tglAkhir].forEach(el => {
+    el.addEventListener('change', () => {
+        periodeSelect.value = 'kustom';
+    });
+});
+</script>
 </body>
 </html>

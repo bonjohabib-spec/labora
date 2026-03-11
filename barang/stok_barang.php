@@ -14,7 +14,9 @@ if (isset($_GET['action']) && isset($_GET['id']) && isset($_GET['s'])) {
     $id = (int)$_GET['id'];
     $status = $_GET['s'] == 'aktif' ? 'aktif' : 'non-aktif';
     
-    $conn->query("UPDATE barang_varian SET status = '$status' WHERE id_varian = $id");
+    $stmt = $conn->prepare("UPDATE barang_varian SET status = ? WHERE id_varian = ?");
+    $stmt->bind_param("si", $status, $id);
+    $stmt->execute();
     header("Location: stok_barang.php?view=$view_status");
     exit;
 }
@@ -60,17 +62,21 @@ if (isset($_GET['action']) && $_GET['action'] == 'hapus' && isset($_GET['id'])) 
 }
 
 // 3. STATISTIK RINGKASAN STOK
-$qTotal = mysqli_query($conn, "SELECT COUNT(*) as total FROM barang_varian WHERE status='aktif'");
-$totalBarang = mysqli_fetch_assoc($qTotal)['total'] ?? 0;
+$qStats = $conn->query("
+    SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN v.stok > 0 AND v.stok <= b.stok_min THEN 1 ELSE 0 END) as low,
+        SUM(CASE WHEN v.stok <= 0 THEN 1 ELSE 0 END) as empty,
+        SUM(v.stok) as total_unit
+    FROM barang_varian v
+    LEFT JOIN barang b ON v.id_barang = b.id_barang
+    WHERE v.status = 'aktif'
+")->fetch_assoc();
 
-$qLow = mysqli_query($conn, "SELECT COUNT(*) as low FROM barang_varian v JOIN barang b ON v.id_barang = b.id_barang WHERE v.stok > 0 AND v.stok <= b.stok_min AND v.status='aktif'");
-$totalLow = mysqli_fetch_assoc($qLow)['low'] ?? 0;
-
-$qEmpty = mysqli_query($conn, "SELECT COUNT(*) as jml_habis FROM barang_varian WHERE stok <= 0 AND status='aktif'");
-$totalEmpty = mysqli_fetch_assoc($qEmpty)['jml_habis'] ?? 0;
-
-$qUnits = mysqli_query($conn, "SELECT SUM(stok) as total_unit FROM barang_varian WHERE status='aktif'");
-$totalUnits = mysqli_fetch_assoc($qUnits)['total_unit'] ?? 0;
+$totalBarang = $qStats['total'] ?? 0;
+$totalLow    = $qStats['low'] ?? 0;
+$totalEmpty  = $qStats['empty'] ?? 0;
+$totalUnits  = $qStats['total_unit'] ?? 0;
 
 // 4. FILTER KARTU (Clickable Cards)
 $filter_type = $_GET['filter'] ?? 'all';
@@ -82,19 +88,31 @@ if ($filter_type == 'low') {
 }
 
 // Gabungkan barang dan varian dengan filter status + cek apakah sudah pernah dijual
-// Menggunakan LEFT JOIN agar data varian tetap muncul meskipun ada isu di tabel barang
 $sql = "
   SELECT b.id_barang, b.nama_barang, v.id_varian, v.warna, v.ukuran, 
          v.harga_beli, v.harga_jual, v.stok, v.status as varian_status,
          b.stok_min, b.stok_max,
-         (SELECT COUNT(*) FROM detail_penjualan dp WHERE dp.id_varian = v.id_varian) AS total_terjual
+         (SELECT COUNT(*) FROM detail_penjualan dp WHERE dp.id_varian = v.id_varian) AS total_terjual,
+         CASE 
+            WHEN v.stok <= b.stok_min THEN 'Rendah'
+            WHEN v.stok >= b.stok_max THEN 'Berlebih'
+            ELSE 'Normal'
+         END as status_teks,
+         CASE 
+            WHEN v.stok <= b.stok_min THEN 'status-low'
+            WHEN v.stok >= b.stok_max THEN 'status-high'
+            ELSE 'status-normal'
+         END as status_class
   FROM barang_varian v
   LEFT JOIN barang b ON v.id_barang = b.id_barang
-  WHERE v.status = '$view_status' $filter_sql
+  WHERE v.status = ? $filter_sql
   ORDER BY b.nama_barang ASC, v.warna ASC, v.ukuran ASC
 ";
 
-$result = $conn->query($sql);
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $view_status);
+$stmt->execute();
+$result = $stmt->get_result();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -202,16 +220,10 @@ $result = $conn->query($sql);
               if ($result->num_rows === 0) {
                 echo '<tr class="no-data"><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">Tidak ada barang di tab ini.</td></tr>';
               } else {
-                while ($row = $result->fetch_assoc()) {
-                  if ($row['stok'] <= $row['stok_min']) {
-                    $statusTxt = "Rendah"; $class="status-low"; $barang_rendah++;
-                  } elseif ($row['stok'] >= $row['stok_max']) {
-                    $statusTxt = "Berlebih"; $class="status-high";
-                  } else {
-                    $statusTxt = "Normal"; $class="status-normal";
-                  }
                   $total_barang++;
                   $total_modal += ($row['harga_beli'] * $row['stok']);
+                  $isTerjual = (int)$row['total_terjual'] > 0;
+                  if ($row['status_teks'] == 'Rendah') $barang_rendah++;
 
                   // Menambahkan data-search agar JS mudah memfilter
                   $searchData = strtolower($row['nama_barang'] . ' ' . $row['warna'] . ' ' . $row['ukuran']);
@@ -223,43 +235,30 @@ $result = $conn->query($sql);
                     <td><?= htmlspecialchars($row['ukuran']) ?></td>
                     <td>Rp <?= number_format($row['harga_beli'], 0, ',', '.') ?></td>
                     <td>Rp <?= number_format($row['harga_jual'], 0, ',', '.') ?></td>
-                    <td style='font-weight:600;'><?= $row['stok'] ?></td>
-                    <td><span class='badge <?= $class ?>'><?= $statusTxt ?></span></td>
+                    <td><?= $row['stok'] ?></td>
+                    <td><span class='badge <?= $row['status_class'] ?>'><?= $row['status_teks'] ?></span></td>
                     <td style='text-align: center;'>
                       <div class='action-buttons-premium'>
                         <?php if ($row['varian_status'] == 'aktif'): ?>
                           <a href='stok_barang.php?view=<?= $view_status ?>&action=status&id=<?= $row['id_varian'] ?>&s=non-aktif' 
-                             class='btn-action delete' 
-                             onclick="return confirm('Arsipkan barang ini?')"
-                             title='Arsipkan'>
+                             class='btn-action delete' onclick="return confirm('Arsipkan barang ini?')">
                              <span class='icon'>📦</span> Arsip
                           </a>
                         <?php else: ?>
                           <a href='stok_barang.php?view=<?= $view_status ?>&action=status&id=<?= $row['id_varian'] ?>&s=aktif' 
-                             class='btn-action edit' 
-                           onclick="return confirm('Aktifkan kembali?')"
-                           title='Aktifkan Kembali'>
-                           <span class='icon'>🔄</span> Balikkan
+                             class='btn-action edit' onclick="return confirm('Aktifkan kembali?')">
+                             <span class='icon'>🔄</span> Balikkan
                           </a>
                         <?php endif; ?>
                         
-                        <?php if ((int)$row['total_terjual'] == 0): ?>
-                          <a href='edit_barang.php?id=<?= $row['id_varian'] ?>' 
-                             class='btn-action edit' 
-                             title='Edit Barang'>
-                             <span class='icon'>✏️</span> Edit
-                          </a>
+                        <a href='edit_barang.php?id=<?= $row['id_varian'] ?>' class='btn-action edit'>
+                           <span class='icon'>✏️</span> Edit
+                        </a>
+
+                        <?php if (!$isTerjual): ?>
                           <a href='stok_barang.php?action=hapus&id=<?= $row['id_varian'] ?>' 
-                             class='btn-action delete' 
-                             onclick="return confirm('Hapus barang ini secara permanen?')"
-                             title='Hapus Barang'>
+                             class='btn-action delete' onclick="return confirm('Hapus permanen?')">
                              <span class='icon'>🗑️</span> Hapus
-                          </a>
-                        <?php else: ?>
-                          <a href='edit_barang.php?id=<?= $row['id_varian'] ?>' 
-                             class='btn-action edit' 
-                             title='Edit Barang'>
-                             <span class='icon'>✏️</span> Edit
                           </a>
                         <?php endif; ?>
                       </div>

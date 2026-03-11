@@ -18,76 +18,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
   }
 
-  // 🔍 Cek apakah barang utama sudah ada
-  $cekBarang = $conn->prepare("SELECT id_barang FROM barang WHERE nama_barang=?");
-  $cekBarang->bind_param("s", $nama_barang);
-  $cekBarang->execute();
-  $resBarang = $cekBarang->get_result();
+  $conn->begin_transaction();
+  try {
+    // 🔍 1. Dapatkan atau Buat Barang Utama
+    $cekBarang = $conn->prepare("SELECT id_barang FROM barang WHERE nama_barang = ?");
+    $cekBarang->bind_param("s", $nama_barang);
+    $cekBarang->execute();
+    $resBarang = $cekBarang->get_result();
 
-  if ($resBarang->num_rows > 0) {
-    $barang = $resBarang->fetch_assoc();
-    $id_barang = $barang['id_barang'];
-  } else {
-    $stmtBarang = $conn->prepare("INSERT INTO barang (nama_barang) VALUES (?)");
-    $stmtBarang->bind_param("s", $nama_barang);
-    $stmtBarang->execute();
-    $id_barang = $conn->insert_id;
-  }
+    if ($row = $resBarang->fetch_assoc()) {
+      $id_barang = $row['id_barang'];
+    } else {
+      $stmt = $conn->prepare("INSERT INTO barang (nama_barang) VALUES (?)");
+      $stmt->bind_param("s", $nama_barang);
+      $stmt->execute();
+      $id_barang = $conn->insert_id;
+    }
 
-  // 🔍 Cek varian
-  $cekVar = $conn->prepare("SELECT id_varian, stok FROM barang_varian WHERE id_barang=? AND warna=? AND ukuran=?");
-  $cekVar->bind_param("iss", $id_barang, $warna, $ukuran);
-  $cekVar->execute();
-  $resVar = $cekVar->get_result();
+    // 🔍 2. Dapatkan atau Buat Varian
+    $cekVar = $conn->prepare("SELECT id_varian, stok FROM barang_varian WHERE id_barang=? AND warna=? AND ukuran=?");
+    $cekVar->bind_param("iss", $id_barang, $warna, $ukuran);
+    $cekVar->execute();
+    $resVar = $cekVar->get_result();
 
-  if ($resVar->num_rows > 0) {
-    // 🟢 Update stok varian
-    $v = $resVar->fetch_assoc();
-    $id_varian = $v['id_varian'];
-    $stok_baru = $v['stok'] + $stok;
-
-    $update = $conn->prepare("
-      UPDATE barang_varian
-      SET stok=?, 
+    if ($v = $resVar->fetch_assoc()) {
+      $id_varian = $v['id_varian'];
+      $stok_baru = $v['stok'] + $stok;
+      $update = $conn->prepare("
+        UPDATE barang_varian SET 
+          stok = ?, 
           harga_beli = CASE WHEN ? > 0 THEN ? ELSE harga_beli END,
           harga_jual = CASE WHEN ? > 0 THEN ? ELSE harga_jual END,
-          stok_min=?, stok_max=?
-      WHERE id_varian=?
-    ");
-    $update->bind_param("ididiiii", $stok_baru, $harga_beli, $harga_beli, $harga_jual, $harga_jual, $stok_min, $stok_max, $id_varian);
-    $update->execute();
+          stok_min = ?, stok_max = ?
+        WHERE id_varian = ?
+      ");
+      $update->bind_param("ididiiii", $stok_baru, $harga_beli, $harga_beli, $harga_jual, $harga_jual, $stok_min, $stok_max, $id_varian);
+      $update->execute();
+      $ket = "Stok varian ditambah";
+    } else {
+      $stmtVar = $conn->prepare("INSERT INTO barang_varian (id_barang, warna, ukuran, harga_beli, harga_jual, stok, stok_min, stok_max) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+      $stmtVar->bind_param("issddiii", $id_barang, $warna, $ukuran, $harga_beli, $harga_jual, $stok, $stok_min, $stok_max);
+      $stmtVar->execute();
+      $id_varian = $conn->insert_id;
+      $ket = "Varian baru ditambahkan";
+    }
 
-    // 📜 Catat riwayat stok
-    $tipe = 'penambahan';
-    $ket = 'Stok varian ditambah';
-    $log = $conn->prepare("
-      INSERT INTO riwayat_stok (id_barang, jumlah, tipe, keterangan, tanggal)
-      VALUES (?, ?, ?, ?, NOW())
-    ");
-    $log->bind_param("iiss", $id_barang, $stok, $tipe, $ket);
-    $log->execute();
+    // 📜 3. Catat Riwayat
+    catat_riwayat_stok($conn, $id_barang, $id_varian, $stok, 'penambahan', $ket);
 
-    echo "<script>alert('Varian sudah ada, stok berhasil ditambah!'); window.location='stok_barang.php';</script>";
-  } else {
-    // 🆕 Tambah varian baru
-    $stmtVar = $conn->prepare("
-      INSERT INTO barang_varian (id_barang, warna, ukuran, harga_beli, harga_jual, stok, stok_min, stok_max)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ");
-    $stmtVar->bind_param("issddiii", $id_barang, $warna, $ukuran, $harga_beli, $harga_jual, $stok, $stok_min, $stok_max);
-    $stmtVar->execute();
-
-    // 📜 Log riwayat stok
-    $tipe = 'penambahan';
-    $ket = 'Varian baru ditambahkan ke sistem';
-    $log = $conn->prepare("
-      INSERT INTO riwayat_stok (id_barang, jumlah, tipe, keterangan, tanggal)
-      VALUES (?, ?, ?, ?, NOW())
-    ");
-    $log->bind_param("iiss", $id_barang, $stok, $tipe, $ket);
-    $log->execute();
-
-    echo "<script>alert('Barang/varian baru berhasil ditambahkan!'); window.location='stok_barang.php';</script>";
+    $conn->commit();
+    echo "<script>alert('Berhasil disimpan!'); window.location='stok_barang.php';</script>";
+  } catch (Exception $e) {
+    $conn->rollback();
+    echo "<script>alert('Gagal: " . $e->getMessage() . "'); window.history.back();</script>";
   }
 }
 ?>

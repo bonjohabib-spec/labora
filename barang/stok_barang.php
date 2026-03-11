@@ -66,7 +66,7 @@ $qStats = $conn->query("
     SELECT 
         COUNT(*) as total,
         SUM(CASE WHEN v.stok > 0 AND v.stok <= b.stok_min THEN 1 ELSE 0 END) as low,
-        SUM(CASE WHEN v.stok <= 0 THEN 1 ELSE 0 END) as empty,
+        SUM(CASE WHEN v.stok <= 0 THEN 1 ELSE 0 END) as habis,
         SUM(v.stok) as total_unit
     FROM barang_varian v
     LEFT JOIN barang b ON v.id_barang = b.id_barang
@@ -75,7 +75,7 @@ $qStats = $conn->query("
 
 $totalBarang = $qStats['total'] ?? 0;
 $totalLow    = $qStats['low'] ?? 0;
-$totalEmpty  = $qStats['empty'] ?? 0;
+$totalEmpty  = $qStats['habis'] ?? 0;
 $totalUnits  = $qStats['total_unit'] ?? 0;
 
 // 4. FILTER KARTU (Clickable Cards)
@@ -220,6 +220,7 @@ $result = $stmt->get_result();
               if ($result->num_rows === 0) {
                 echo '<tr class="no-data"><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">Tidak ada barang di tab ini.</td></tr>';
               } else {
+                while ($row = $result->fetch_assoc()) {
                   $total_barang++;
                   $total_modal += ($row['harga_beli'] * $row['stok']);
                   $isTerjual = (int)$row['total_terjual'] > 0;

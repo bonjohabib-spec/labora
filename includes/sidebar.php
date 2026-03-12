@@ -39,6 +39,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       </a>
     </li>
 
+    <li class="<?= $currentPage == 'tutup_kasir.php' ? 'active' : '' ?>">
+      <a href="<?= $base_url ?>/dashboard/tutup_kasir.php">
+        <i class="fas fa-flag-checkered"></i>
+        <span class="link-text">Tutup Kasir</span>
+      </a>
+    </li>
+
     <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'owner'): ?>
     <li class="<?= $currentPage == 'pengeluaran.php' ? 'active' : '' ?>">
       <a href="<?= $base_url ?>/pengeluaran/pengeluaran.php">

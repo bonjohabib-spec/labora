@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buka_shift'])) {
     <form method="POST">
       <div class="form-group">
         <label>Saldo Awal (Modal Tunai)</label>
-        <input type="text" id="saldo_awal_display" placeholder="Contoh: 50.000" required autofocus>
+        <input type="text" id="saldo_awal_display" placeholder="Contoh: 50.000" required autofocus onfocus="this.select()">
         <input type="hidden" name="saldo_awal" id="saldo_awal_real">
       </div>
       <button type="submit" name="buka_shift" class="btn-block">🚀 Mulai Shift Sekarang</button>

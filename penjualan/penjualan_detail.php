@@ -273,7 +273,7 @@ $d = $conn->query("
             <form method="POST" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
                 <div style="flex: 1; min-width: 200px;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #9a3412; margin-bottom: 5px;">NOMINAL BAYAR (RP)</label>
-                    <input type="text" id="nominal_bayar_display" placeholder="Contoh: 50.000" style="width: 100%; padding: 10px; border: 1px solid #fdba74; border-radius: 8px; font-size: 16px; font-weight: 700;" required>
+                    <input type="text" id="nominal_bayar_display" placeholder="Contoh: 50.000" style="width: 100%; padding: 10px; border: 1px solid #fdba74; border-radius: 8px; font-size: 16px; font-weight: 700;" required onfocus="this.select()">
                     <input type="hidden" name="nominal_bayar" id="nominal_bayar_real">
                 </div>
                 <div style="width: 150px;">

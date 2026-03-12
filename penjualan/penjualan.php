@@ -124,6 +124,8 @@ $q_riwayat = $conn->query("SELECT p.*,
         SELECT id_penjualan, metode_pembayaran as metode FROM penjualan
         UNION
         SELECT id_penjualan, metode_pembayaran as metode FROM pembayaran_piutang
+        UNION
+        SELECT id_penjualan, 'piutang' as metode FROM penjualan WHERE sisa_piutang > 0
      ) AS all_methods 
      WHERE all_methods.id_penjualan = p.id_penjualan
     ) as daftar_metode

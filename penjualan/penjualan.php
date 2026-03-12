@@ -17,6 +17,12 @@ $id_shift = $active_shift['id_shift'];
 // 🗑️ HAPUS TRANSAKSI 
 // ==========================
 if (isset($_GET['hapus'])) {
+    // 🛡️ PROTEKSI: Hanya Owner yang boleh hapus
+    if ($_SESSION['user_role'] !== 'owner') {
+        echo "<script>alert('❌ Akses ditolak! Hanya Owner yang boleh menghapus transaksi.'); window.location='penjualan.php';</script>";
+        exit;
+    }
+
     $id_hapus = intval($_GET['hapus']);
     
     // 🔍 Cek status transaksi dulu sebelum hapus
@@ -289,7 +295,11 @@ $totalReceived30 = $dataSum['cash_30'] ?? 0;
                     <?php endif; ?>
                   </td>
                   <td>
-                    <a href="penjualan.php?hapus=<?= $p['id_penjualan'] ?>" class="btn-outline" onclick="return confirm('Hapus riwayat ini?')">🗑️ Hapus</a>
+                    <?php if ($_SESSION['user_role'] === 'owner'): ?>
+                        <a href="penjualan.php?hapus=<?= $p['id_penjualan'] ?>" class="btn-outline" onclick="return confirm('Hapus riwayat ini?')">🗑️ Hapus</a>
+                    <?php else: ?>
+                        <span style="color: #94a3b8; font-size: 11px;">Restricted 🔒</span>
+                    <?php endif; ?>
                   </td>
                 </tr>
                 <?php endwhile; ?>

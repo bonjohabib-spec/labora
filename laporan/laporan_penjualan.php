@@ -10,13 +10,24 @@ if (!isset($_SESSION['user_role'])) {
 $tanggal_awal = isset($_GET['tanggal_awal']) ? $_GET['tanggal_awal'] : date('Y-m-01');
 $tanggal_akhir = isset($_GET['tanggal_akhir']) ? $_GET['tanggal_akhir'] : date('Y-m-t');
 $periode = isset($_GET['periode']) ? $_GET['periode'] : 'bulan_ini';
+$filter_kasir = isset($_GET['kasir']) ? $_GET['kasir'] : '';
+
+// Ambil daftar kair untuk dropdown
+$qUsers = $conn->query("SELECT username FROM users ORDER BY username ASC");
+$users = [];
+while($u = $qUsers->fetch_assoc()) $users[] = $u['username'];
 
 // Paginasi
 $per_page = 10;
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $offset = ($page - 1) * $per_page;
 
-$query_count = "SELECT COUNT(*) as total FROM penjualan WHERE status='selesai' AND DATE(tanggal) BETWEEN ? AND ?";
+$where_kasir = "";
+if ($filter_kasir !== "") {
+    $where_kasir = " AND kasir = '" . $conn->real_escape_string($filter_kasir) . "'";
+}
+
+$query_count = "SELECT COUNT(*) as total FROM penjualan WHERE status='selesai' AND DATE(tanggal) BETWEEN ? AND ?" . $where_kasir;
 $params = [$tanggal_awal, $tanggal_akhir];
 $types = "ss";
 
@@ -30,16 +41,21 @@ $total_pages = ceil($total_data / $per_page);
 $stmtSum = $conn->prepare("
     SELECT SUM(total) as total_omset, SUM(sisa_piutang) as total_piutang
     FROM penjualan 
-    WHERE status='selesai' AND DATE(tanggal) BETWEEN ? AND ?
-");
+    WHERE status='selesai' AND DATE(tanggal) BETWEEN ? AND ?" . $where_kasir);
 $stmtSum->bind_param("ss", $tanggal_awal, $tanggal_akhir);
 $stmtSum->execute();
 $summ = $stmtSum->get_result()->fetch_assoc();
 $total_omset = $summ['total_omset'] ?? 0;
-$total_piutang = $summ['total_piutang'] ?? 0;
+$total_piutang = $summ['sisa_piutang'] ?? 0; // Corrected from $summ['total_piutang']
 
 // Kas Masuk = (Total Omset - Sisa Piutang) - (Cicilan untuk nota periode ini) + (Semua Cicilan periode ini)
-$stmtPay = $conn->prepare("SELECT SUM(nominal) as total FROM pembayaran_piutang WHERE DATE(tanggal) BETWEEN ? AND ?");
+// Untuk Cicilan Piutang, kita perlu memfilter berdasarkan kasir yang menerima uang (id_shift -> kasir)
+$where_kasir_piutang = "";
+if ($filter_kasir !== "") {
+    $where_kasir_piutang = " AND id_shift IN (SELECT id_shift FROM kas_shift WHERE kasir = '" . $conn->real_escape_string($filter_kasir) . "')";
+}
+
+$stmtPay = $conn->prepare("SELECT SUM(nominal) as total FROM pembayaran_piutang WHERE DATE(tanggal) BETWEEN ? AND ?" . $where_kasir_piutang);
 $stmtPay->bind_param("ss", $tanggal_awal, $tanggal_akhir);
 $stmtPay->execute();
 $kas_cicilan = $stmtPay->get_result()->fetch_assoc()['total'] ?? 0;
@@ -47,8 +63,8 @@ $kas_cicilan = $stmtPay->get_result()->fetch_assoc()['total'] ?? 0;
 $stmtNotaBaru = $conn->prepare("
     SELECT SUM(nominal) FROM pembayaran_piutang 
     WHERE DATE(tanggal) BETWEEN ? AND ? 
-    AND id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE DATE(tanggal) BETWEEN ? AND ?)
-");
+    AND id_penjualan IN (SELECT id_penjualan FROM penjualan WHERE DATE(tanggal) BETWEEN ? AND ?" . $where_kasir . ")
+    " . $where_kasir_piutang);
 $stmtNotaBaru->bind_param("ssss", $tanggal_awal, $tanggal_akhir, $tanggal_awal, $tanggal_akhir);
 $stmtNotaBaru->execute();
 $cicilan_nota_baru = $stmtNotaBaru->get_result()->fetch_row()[0] ?? 0;
@@ -58,7 +74,7 @@ $total_kas_masuk = ($total_omset - $total_piutang) - $cicilan_nota_baru + $kas_c
 // 2. Data Penjualan Terperinci
 $query_detail = "SELECT * FROM penjualan 
                  WHERE status='selesai' 
-                 AND DATE(tanggal) BETWEEN ? AND ?
+                 AND DATE(tanggal) BETWEEN ? AND ?" . $where_kasir . "
                  ORDER BY tanggal DESC LIMIT ? OFFSET ?";
 $stmtDetail = $conn->prepare($query_detail);
 $stmtDetail->bind_param("ssii", $tanggal_awal, $tanggal_akhir, $per_page, $offset);
@@ -69,7 +85,7 @@ $res_detail = $stmtDetail->get_result();
 $query_top_customers = "SELECT pelanggan, COUNT(*) as transaksi, SUM(total) as total_belanja 
                         FROM penjualan 
                         WHERE status='selesai' 
-                        AND DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'
+                        AND DATE(tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'" . $where_kasir . "
                         GROUP BY pelanggan 
                         ORDER BY transaksi DESC LIMIT 5";
 $res_customers = mysqli_query($conn, $query_top_customers);
@@ -83,7 +99,7 @@ $query_item_count = "SELECT COUNT(DISTINCT dp.id_varian) as total
                      FROM detail_penjualan dp
                      JOIN penjualan p ON dp.id_penjualan = p.id_penjualan
                      WHERE p.status='selesai'
-                     AND DATE(p.tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'";
+                     AND DATE(p.tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'" . ($filter_kasir !== "" ? " AND p.kasir = '" . $conn->real_escape_string($filter_kasir) . "'" : "");
 $res_item_count = mysqli_query($conn, $query_item_count);
 $item_total_data = mysqli_fetch_assoc($res_item_count)['total'];
 $item_total_pages = ceil($item_total_data / $item_per_page);
@@ -95,7 +111,7 @@ $query_top_items = "SELECT b.nama_barang, v.warna, v.ukuran, SUM(dp.qty) as tota
                     JOIN barang b ON v.id_barang = b.id_barang
                     JOIN penjualan p ON dp.id_penjualan = p.id_penjualan
                     WHERE p.status='selesai'
-                    AND DATE(p.tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'
+                    AND DATE(p.tanggal) BETWEEN '$tanggal_awal' AND '$tanggal_akhir'" . ($filter_kasir !== "" ? " AND p.kasir = '" . $conn->real_escape_string($filter_kasir) . "'" : "") . "
                     GROUP BY dp.id_varian
                     ORDER BY total_qty DESC LIMIT $item_per_page OFFSET $item_offset";
 $res_items = mysqli_query($conn, $query_top_items);
@@ -107,8 +123,7 @@ $stmtKasPenjualan = $conn->prepare("
     FROM penjualan 
     WHERE status='selesai' 
     AND DATE(tanggal) BETWEEN ? AND ? 
-    AND (total - sisa_piutang) > 0
-");
+    AND (total - sisa_piutang) > 0" . $where_kasir);
 $stmtKasPenjualan->bind_param("ss", $tanggal_awal, $tanggal_akhir);
 $stmtKasPenjualan->execute();
 $res_kas_penjualan = $stmtKasPenjualan->get_result();
@@ -118,8 +133,7 @@ $stmtKasCicilan = $conn->prepare("
     SELECT pp.id_penjualan, pp.tanggal, pp.nominal, p.pelanggan 
     FROM pembayaran_piutang pp
     JOIN penjualan p ON pp.id_penjualan = p.id_penjualan
-    WHERE DATE(pp.tanggal) BETWEEN ? AND ?
-");
+    WHERE DATE(pp.tanggal) BETWEEN ? AND ?" . str_replace(" id_shift", " pp.id_shift", $where_kasir_piutang));
 $stmtKasCicilan->bind_param("ss", $tanggal_awal, $tanggal_akhir);
 $stmtKasCicilan->execute();
 $res_kas_cicilan = $stmtKasCicilan->get_result();
@@ -167,6 +181,15 @@ $res_kas_cicilan = $stmtKasCicilan->get_result();
               <option value="bulan_lalu" <?= $periode=='bulan_lalu'?'selected':'' ?>>Bulan lalu</option>
               <option value="tahun_ini" <?= $periode=='tahun_ini'?'selected':'' ?>>Tahun ini</option>
               <option value="kustom" <?= $periode=='kustom'?'selected':'' ?>>Kustom</option>
+            </select>
+          </div>
+          <div class="input-control">
+            <label>Kasir</label>
+            <select name="kasir">
+              <option value="">Semua Kasir</option>
+              <?php foreach($users as $u): ?>
+                <option value="<?= htmlspecialchars($u) ?>" <?= $filter_kasir == $u ? 'selected' : '' ?>><?= htmlspecialchars($u) ?></option>
+              <?php endforeach; ?>
             </select>
           </div>
           <button type="submit" class="btn-filter">Tampilkan</button>
@@ -266,7 +289,7 @@ $res_kas_cicilan = $stmtKasCicilan->get_result();
             <div class="page-nav">
               <?php 
               // Base URL harus membawa semua parameter agar tidak hilang saat navigasi
-              $item_base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&periode=$periode&page=$page&item_page=";
+              $item_base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&periode=$periode&kasir=$filter_kasir&page=$page&item_page=";
               ?>
               <?php if ($item_page > 1): ?>
                 <a href="<?= $item_base_url ?>1" class="page-btn" style="width:24px; height:24px; font-size:12px;" title="Awal">«</a>
@@ -325,7 +348,7 @@ $res_kas_cicilan = $stmtKasCicilan->get_result();
           <span class="page-info">Halaman <?= $page ?> / <?= $total_pages ?></span>
           <div class="page-nav">
             <?php 
-            $base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&periode=$periode&item_page=$item_page&page=";
+            $base_url = "?tanggal_awal=$tanggal_awal&tanggal_akhir=$tanggal_akhir&periode=$periode&kasir=$filter_kasir&item_page=$item_page&page=";
             ?>
             <?php if ($page > 1): ?>
               <a href="<?= $base_url ?>1" class="page-btn" title="Awal">«</a>

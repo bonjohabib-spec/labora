@@ -69,15 +69,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
         padding: 15px;
         border-radius: 10px;
         margin-bottom: 25px;
+        border: 1px solid #e2e8f0;
     }
     .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px dashed #e2e8f0; }
     .summary-row:last-child { border-bottom: none; font-weight: 700; font-size: 16px; margin-top: 5px; color: #1e293b; }
+    
+    /* Kalkulator Denominasi */
+    .denom-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 25px;
+        background: #f1f5f9;
+        padding: 15px;
+        border-radius: 12px;
+    }
+    .denom-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .denom-item label { font-size: 11px; font-weight: 700; color: #64748b; }
+    .denom-item input { 
+        padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-weight: 700; text-align: center;
+    }
+
     .form-group { margin-bottom: 20px; }
     .form-group label { display: block; font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 8px; }
-    .form-group input { width: 100%; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 18px; font-weight: 800; text-align: center; color: #1e293b; }
+    .form-group input { width: 100%; padding: 14px; border: 1px solid #3b82f6; border-radius: 8px; font-size: 20px; font-weight: 800; text-align: center; color: #1e293b; background: #fff; }
     .btn-close { width: 100%; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 16px; margin-top: 10px; }
     .btn-close:hover { background: #dc2626; }
-    .info-msg { padding: 12px; background: #eff6ff; color: #3b82f6; border-radius: 8px; font-size: 12px; margin-bottom: 20px; text-align: center; }
+    .info-msg { padding: 12px; background: #fffbeb; color: #b45309; border-radius: 8px; font-size: 12px; margin-bottom: 20px; text-align: center; border: 1px solid #fde68a; }
   </style>
 </head>
 <body style="background: #f1f5f9;">
@@ -85,10 +107,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
     <h1>🏁 Tutup Kasir / Akhiri Shift</h1>
     
     <div class="info-msg">
-        Harap hitung seluruh uang fisik (kertas & koin) yang ada di laci kasir saat ini.
+        <strong>PENTING:</strong> Harap hitung manual seluruh uang fisik di laci saat ini. Masukkan jumlah lembar pada kalkulator denominasi untuk mempermudah.
     </div>
 
+    <?php if ($_SESSION['user_role'] === 'owner'): ?>
     <div class="summary-card">
+        <div style="font-size: 12px; font-weight: 700; color: #3b82f6; margin-bottom: 10px; text-transform: uppercase;">📊 Rincian Sistem (Owner Only)</div>
         <div class="summary-row">
             <span>Modal Awal (Receh)</span>
             <span>Rp <?= number_format($active_shift['saldo_awal'], 0, ',', '.') ?></span>
@@ -105,26 +129,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
             <span style="color: #64748b; font-size: 13px;">↳ Pelunasan Cicilan (Tunai)</span>
             <span style="color: #64748b;">Rp <?= number_format($piutang_tunai, 0, ',', '.') ?></span>
         </div>
-        <div class="summary-row">
-            <span style="color: #64748b; font-size: 13px;">↳ Pelunasan Cicilan (Transfer)</span>
-            <span style="color: #64748b;">Rp <?= number_format($piutang_transfer, 0, ',', '.') ?></span>
-        </div>
         <div class="summary-row" style="border-top: 1px solid #cbd5e1; padding-top: 12px;">
-            <span>TOTAL UANG FISIK (DI LACI)</span>
+            <span>TOTAL SEHARUSNYA (FISIK)</span>
             <div style="text-align: right;">
-                <div style="font-size: 16px;">Rp <?= number_format($total_seharusnya, 0, ',', '.') ?></div>
-                <small style="font-weight: 400; color: #94a3b8; font-size: 10px;">(Modal + Jual Tunai + Pelunasan Tunai)</small>
+                <div style="font-size: 16px; color: #1e293b;">Rp <?= number_format($total_seharusnya, 0, ',', '.') ?></div>
             </div>
         </div>
+    </div>
+    <?php endif; ?>
+
+    <div class="denom-container">
+        <div style="grid-column: span 2; font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 5px; text-transform: uppercase;">🧮 Kalkulator Lembaran / Koin</div>
+        <?php 
+        $denoms = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100];
+        foreach ($denoms as $d): ?>
+            <div class="denom-item">
+                <label><?= number_format($d, 0, ',', '.') ?></label>
+                <input type="number" class="input-denom" data-val="<?= $d ?>" placeholder="0" min="0" onfocus="this.select()">
+            </div>
+        <?php endforeach; ?>
     </div>
 
     <form method="POST">
       <div class="form-group">
-        <label>💵 NILAI UANG FISIK DI LACI (INPUT MANUAL)</label>
-        <input type="text" id="saldo_fisik_display" placeholder="Contoh: 50.000" required autofocus>
+        <label>💵 TOTAL UANG FISIK DI LACI</label>
+        <input type="text" id="saldo_fisik_display" placeholder="Rp 0" required onfocus="this.select()">
         <input type="hidden" name="saldo_fisik" id="saldo_fisik_real">
       </div>
-      <button type="submit" name="tutup_shift" class="btn-close" onclick="return confirm('Apakah Bapak yakin ingin mengakhiri shift ini?')">🛑 TUTUP KASIR & KELUAR</button>
+      <button type="submit" name="tutup_shift" class="btn-close" onclick="return confirm('Apakah Anda yakin ingin mengakhiri shift ini? Selisih uang akan tercatat secara otomatis.')">🛑 TUTUP KASIR & KELUAR</button>
       <a href="dashboard.php" style="display: block; text-align: center; margin-top: 15px; color: #64748b; font-size: 13px; text-decoration: none;">Batal, Kembali ke Dashboard</a>
     </form>
   </div>
@@ -132,6 +164,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
   <script>
     const displayInput = document.getElementById('saldo_fisik_display');
     const realInput = document.getElementById('saldo_fisik_real');
+    const denomInputs = document.querySelectorAll('.input-denom');
+
+    function updateFromDenom() {
+        let total = 0;
+        denomInputs.forEach(input => {
+            const val = parseInt(input.dataset.val);
+            const qty = parseInt(input.value) || 0;
+            total += (val * qty);
+        });
+        
+        realInput.value = total;
+        displayInput.value = "Rp " + new Intl.NumberFormat('id-ID').format(total);
+    }
+
+    denomInputs.forEach(input => {
+        input.addEventListener('input', updateFromDenom);
+    });
 
     displayInput.addEventListener('input', function(e) {
         let value = this.value.replace(/[^\d]/g, "");

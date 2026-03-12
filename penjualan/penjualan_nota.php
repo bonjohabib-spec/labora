@@ -3,14 +3,25 @@ include __DIR__ . '/../includes/koneksi.php';
 $id_penjualan = intval($_GET['id'] ?? 0);
 if (!$id_penjualan) die("ID tidak valid");
 
-$p = $conn->query("SELECT * FROM penjualan WHERE id_penjualan=$id_penjualan")->fetch_assoc();
-$items = $conn->query("
+// Ambil data penjualan dengan prepared statement
+$stmtP = $conn->prepare("SELECT * FROM penjualan WHERE id_penjualan = ?");
+$stmtP->bind_param("i", $id_penjualan);
+$stmtP->execute();
+$p = $stmtP->get_result()->fetch_assoc();
+
+if (!$p) die("Transaksi tidak ditemukan.");
+
+// Ambil detail barang dengan prepared statement
+$stmtItems = $conn->prepare("
     SELECT d.*, b.nama_barang, v.warna, v.ukuran 
     FROM detail_penjualan d
     JOIN barang_varian v ON d.id_varian = v.id_varian
     JOIN barang b ON v.id_barang = b.id_barang
-    WHERE d.id_penjualan = $id_penjualan
+    WHERE d.id_penjualan = ?
 ");
+$stmtItems->bind_param("i", $id_penjualan);
+$stmtItems->execute();
+$items = $stmtItems->get_result();
 
 // Ambil info toko dari database pengaturan
 $qStore = $conn->query("SELECT * FROM pengaturan WHERE id = 1");

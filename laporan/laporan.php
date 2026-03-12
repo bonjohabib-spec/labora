@@ -138,6 +138,12 @@ $laba_bersih = $total_omzet - $total_pengeluaran;
             <p>Lihat rincian biaya operasional, gaji, dan stok. Analisis alokasi dana berdasarkan kategori pengeluaran.</p>
             <div class="btn-go">Buka Rincian →</div>
           </a>
+
+          <a href="laporan_shift.php?tanggal_awal=<?= $tanggal_awal ?>&tanggal_akhir=<?= $tanggal_akhir ?>" class="report-card" style="border-left: 4px solid #f59e0b;">
+            <h3>📋 Laporan Riwayat Shift (Audit)</h3>
+            <p>Pantau histori pembukaan & penutupan kasir, rincian modal awal, saldo fisik, dan deteksi selisih uang (over/short).</p>
+            <div class="btn-go" style="background: #fff7ed; color: #f59e0b;">Buka Audit →</div>
+          </a>
         </div>
 
       </div> <!-- .page-content -->

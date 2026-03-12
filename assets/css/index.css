@@ -2,180 +2,253 @@
   box-sizing: border-box; 
   margin: 0; 
   padding: 0; 
-  font-family: 'Montserrat', sans-serif; 
+  font-family: 'Inter', sans-serif; 
 }
 
 body { 
-  background: #f6f5f7; 
+  background: #f0f2f5; 
   display: flex; 
   justify-content: center; 
   align-items: center; 
   height: 100vh; 
+  padding: 20px;
 }
 
-h1, h2 { 
-  margin-bottom: 10px; 
-}
-
-button { 
-  cursor: pointer; 
-}
-
-/* Container */
 .container { 
   background: #fff; 
-  border-radius: 10px; 
-  width: 768px; 
+  border-radius: 28px; 
+  width: 1050px; 
   max-width: 100%; 
-  min-height: 480px; 
-  position: relative; 
-  overflow: hidden; 
-  box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+  height: 640px; 
+  display: flex; 
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
 }
 
-.form-container { 
-  position: absolute; 
-  top: 0; 
-  height: 100%; 
-  transition: all 0.6s ease-in-out; 
+/* --- LEFT SECTION --- */
+.form-section { 
+  flex: 1.1; 
+  padding: 50px 70px; 
+  display: flex; 
+  flex-direction: column;
+  background: #1e293b; /* Warna gelap agar logo putih menyatu */
 }
 
-.sign-in-container { 
-  left: 0; 
-  width: 50%; 
-  z-index: 2; 
+.login-header { 
+  margin-bottom: 35px; 
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
-.sign-up-container { 
-  left: 0; 
-  width: 50%; 
-  opacity: 0; 
-  z-index: 1; 
+.brand-logo { 
+  height: 80px; /* Diperbesar dari 50px agar lebih gagah and terbaca */
+  width: auto; 
+  object-fit: contain;
 }
 
-.container.right-panel-active .sign-in-container { 
-  transform: translateX(100%); 
-}
-
-.container.right-panel-active .sign-up-container { 
-  transform: translateX(100%); 
-  opacity: 1; 
-  z-index: 5; 
-  animation: show 0.6s; 
-}
-
-@keyframes show {
-  0%, 49.99% { opacity: 0; z-index: 1; } 
-  50%, 100% { opacity: 1; z-index: 5; } 
-}
-
-/* Overlay */
-.overlay-container { 
-  position: absolute; 
-  top: 0; 
-  left: 50%; 
-  width: 50%; 
-  height: 100%; 
-  overflow: hidden; 
-  transition: transform 0.6s ease-in-out; 
-  z-index: 100; 
-}
-
-.container.right-panel-active .overlay-container { 
-  transform: translateX(-100%); 
-}
-
-.overlay { 
-  background: linear-gradient(to right,#012A4A,#1841aa); 
+.form-wrapper h2 { 
+  font-size: 32px; 
   color: #fff; 
-  position: relative; 
-  left: -100%; 
-  height: 100%; 
-  width: 200%; 
-  transform: translateX(0); 
-  transition: transform 0.6s ease-in-out; 
+  font-weight: 800; 
+  margin-bottom: 10px; 
+  letter-spacing: -0.5px;
 }
 
-.container.right-panel-active .overlay { 
-  transform: translateX(50%); 
+.subtitle { 
+  color: #94a3b8; 
+  font-size: 15px; 
+  margin-bottom: 35px; 
+  line-height: 1.6;
 }
 
-.overlay-panel { 
-  position: absolute; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  flex-direction: column; 
-  padding: 0 40px; 
-  text-align: center; 
-  top: 0; 
-  height: 100%; 
-  width: 50%; 
-  transform: translateX(0); 
-  transition: transform 0.6s ease-in-out; 
+.error-box {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    padding: 12px 15px;
+    border-radius: 12px;
+    font-size: 14px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    text-align: center;
 }
 
-.overlay-left { 
-  transform: translateX(-20%); 
+form {
+    width: 100%;
 }
 
-.container.right-panel-active .overlay-left { 
-  transform: translateX(0); 
+.input-field { 
+  margin-bottom: 22px; 
 }
 
-.overlay-right { 
-  right: 0; 
-  transform: translateX(0); 
+.label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
 }
 
-.container.right-panel-active .overlay-right { 
-  transform: translateX(20%); 
+label { 
+  font-weight: 500; 
+  font-size: 13px; 
+  color: #cbd5e1; 
+  display: block;
+  margin-bottom: 8px;
 }
 
-/* Form */
-form { 
-  background: #fff; 
-  display: flex; 
-  flex-direction: column; 
-  padding: 0 50px; 
-  height: 100%; 
-  justify-content: center; 
-  text-align: center; 
+.forgot-link {
+    font-size: 13px;
+    color: #38bdf8;
+    text-decoration: none;
+    font-weight: 500;
 }
 
-input { 
-  background: #eee; 
-  border: none; 
-  padding: 12px 15px; 
-  margin: 8px 0; 
+.input-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon-wrapper i {
+    position: absolute;
+    left: 18px;
+    color: #64748b;
+    font-size: 18px;
+}
+
+input[type="text"], 
+input[type="password"] { 
   width: 100%; 
+  padding: 15px 15px 15px 50px; 
+  border: 1px solid #334155; 
+  background: #0f172a; 
+  border-radius: 14px; 
+  font-size: 15px; 
+  transition: all 0.2s;
+  color: #f1f5f9;
 }
 
-button { 
-  border-radius: 20px; 
-  border: 1px solid #012A4A; 
-  background: #012A4A; 
+input:focus {
+    outline: none;
+    border-color: #38bdf8;
+    background: #0f172a;
+    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.remember-me label {
+    margin-bottom: 0;
+    color: #94a3b8;
+}
+
+.btn-signin { 
+  width: 100%; 
+  padding: 16px; 
+  background: #0d47a1; 
   color: #fff; 
-  font-size: 12px; 
-  font-weight: bold; 
-  padding: 12px 45px; 
-  letter-spacing: 1px; 
-  text-transform: uppercase; 
-  transition: 0.3s; 
+  border: none; 
+  border-radius: 16px; 
+  font-size: 16px; 
+  font-weight: 700; 
+  cursor: pointer; 
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(13, 71, 161, 0.2);
 }
 
-button.ghost { 
-  background: transparent; 
-  border-color: #fff; 
+.btn-signin:hover {
+    background: #0a3d8b;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(13, 71, 161, 0.3);
 }
 
-/* Error & Success */
-.error { 
-  color: red; 
-  margin-bottom: 10px; 
+/* --- RIGHT SECTION --- */
+.side-panel { 
+  flex: 0.9; 
+  background: linear-gradient(160deg, #01497C 0%, #001219 100%); 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  padding: 60px; 
+  color: #fff;
+  text-align: center;
 }
 
-.success { 
-  color: green; 
-  margin-bottom: 10px; 
+.side-content {
+    max-width: 320px;
+}
+
+.box-icon-wrapper {
+    font-size: 80px;
+    margin-bottom: 30px;
+    opacity: 0.9;
+}
+
+.side-content h1 {
+    font-size: 38px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    letter-spacing: -1px;
+}
+
+.side-content h3 {
+    font-size: 19px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    opacity: 0.9;
+}
+
+.side-content p {
+    font-size: 15px;
+    line-height: 1.6;
+    opacity: 0.7;
+    font-weight: 300;
+}
+
+/* --- MOBILE RESPONSIVE --- */
+@media (max-width: 768px) {
+  body {
+    padding: 0;
+    background: #fff;
+  }
+
+  .container {
+    width: 100%;
+    height: 100vh;
+    border-radius: 0;
+    flex-direction: column;
+  }
+
+  .side-panel {
+    display: none; 
+  }
+
+  .form-section {
+    padding: 40px 25px;
+    height: 100%;
+    justify-content: center;
+  }
+
+  .form-wrapper h2 { 
+    font-size: 28px; 
+  }
+
+  .brand-logo {
+      height: 70px; /* Ukuran HP disesuaikan sedikit lebih kecil dari laptop tapi tetap besar */
+  }
+
+  input[type="text"], 
+  input[type="password"] {
+      padding: 17px 17px 17px 50px;
+      font-size: 16px;
+  }
+
+  .btn-signin {
+      padding: 18px;
+  }
 }

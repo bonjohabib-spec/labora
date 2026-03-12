@@ -14,12 +14,12 @@ if (!$active_shift) {
 $id_s = $active_shift['id_shift'];
 $waktu_buka = $active_shift['waktu_buka'];
 
-// 1. Hitung Penjualan Tunai di shift ini
-$qTunai = $conn->query("SELECT SUM(total - sisa_piutang) as total FROM penjualan WHERE id_shift = $id_s AND metode_pembayaran = 'tunai' AND status = 'selesai'");
+// 1. Hitung Penjualan Tunai di shift ini (Bagian DP / Lunas Awal)
+$qTunai = $conn->query("SELECT SUM(bayar - kembali) as total FROM penjualan WHERE id_shift = $id_s AND metode_pembayaran = 'tunai' AND status = 'selesai'");
 $jual_tunai = $qTunai->fetch_assoc()['total'] ?? 0;
 
-// 2. Hitung Penjualan Transfer di shift ini
-$qTransfer = $conn->query("SELECT SUM(total - sisa_piutang) as total FROM penjualan WHERE id_shift = $id_s AND metode_pembayaran = 'transfer' AND status = 'selesai'");
+// 2. Hitung Penjualan Transfer di shift ini (Bagian DP / Lunas Awal)
+$qTransfer = $conn->query("SELECT SUM(bayar - kembali) as total FROM penjualan WHERE id_shift = $id_s AND metode_pembayaran = 'transfer' AND status = 'selesai'");
 $jual_transfer = $qTransfer->fetch_assoc()['total'] ?? 0;
 
 // 3. Hitung Pelunasan Cicilan Piutang di shift ini
@@ -37,10 +37,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
     $saldo_sistem = $total_seharusnya;
     $selisih = $saldo_fisik - $saldo_sistem;
     
-    // Update Shift
-    $stmt = $conn->prepare("UPDATE kas_shift SET waktu_tutup = NOW(), saldo_akhir_sistem = ?, saldo_akhir_fisik = ?, selisih = ?, status = 'closed' WHERE id_shift = ?");
-    $total_uang_masuk_laci = $jual_tunai + $piutang_tunai; // Hanya uang fisik
-    $stmt->bind_param("dddi", $total_uang_masuk_laci, $saldo_fisik, $selisih, $active_shift['id_shift']);
+    // Update Shift degan rincian lengkap
+    $stmt = $conn->prepare("UPDATE kas_shift SET 
+        waktu_tutup = NOW(), 
+        omset_tunai = ?, 
+        omset_transfer = ?, 
+        piutang_tunai = ?, 
+        piutang_transfer = ?, 
+        saldo_akhir_sistem = ?, 
+        saldo_akhir_fisik = ?, 
+        selisih = ?, 
+        status = 'closed' 
+        WHERE id_shift = ?");
+    
+    $total_uang_masuk_laci = $jual_tunai + $piutang_tunai; // Hanya uang fisik baru (tanpa saldo awal)
+    $stmt->bind_param("dddddddi", 
+        $jual_tunai, 
+        $jual_transfer, 
+        $piutang_tunai, 
+        $piutang_transfer, 
+        $total_uang_masuk_laci, 
+        $saldo_fisik, 
+        $selisih, 
+        $active_shift['id_shift']
+    );
     
     if ($stmt->execute()) {
         header("Location: dashboard.php");
@@ -52,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tutup Kasir - LABORA</title>
   <link rel="stylesheet" href="../assets/css/global.css?v=<?= time() ?>">
   <style>
@@ -62,6 +83,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
       padding: 30px;
       border-radius: 12px;
       box-shadow: 0 4px 25px rgba(0,0,0,0.1);
+    }
+    @media (max-width: 768px) {
+        .tutup-box {
+            width: 98%;
+            margin: 10px auto;
+            padding: 15px;
+            border-radius: 0;
+            box-shadow: none;
+        }
     }
     .tutup-box h1 { font-size: 22px; color: #1e293b; text-align: center; margin-bottom: 25px; }
     .summary-card {
@@ -145,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
         foreach ($denoms as $d): ?>
             <div class="denom-item">
                 <label><?= number_format($d, 0, ',', '.') ?></label>
-                <input type="number" class="input-denom" data-val="<?= $d ?>" placeholder="0" min="0" onfocus="this.select()">
+                <input type="number" class="input-denom" data-val="<?= $d ?>" placeholder="0" min="0" onfocus="this.select()" inputmode="numeric">
             </div>
         <?php endforeach; ?>
     </div>
@@ -153,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tutup_shift'])) {
     <form method="POST">
       <div class="form-group">
         <label>💵 TOTAL UANG FISIK DI LACI</label>
-        <input type="text" id="saldo_fisik_display" placeholder="Rp 0" required onfocus="this.select()">
+        <input type="text" id="saldo_fisik_display" placeholder="Rp 0" required onfocus="this.select()" inputmode="decimal">
         <input type="hidden" name="saldo_fisik" id="saldo_fisik_real">
       </div>
       <button type="submit" name="tutup_shift" class="btn-close" onclick="return confirm('Apakah Anda yakin ingin mengakhiri shift ini? Selisih uang akan tercatat secara otomatis.')">🛑 TUTUP KASIR & KELUAR</button>

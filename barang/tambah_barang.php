@@ -52,27 +52,27 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'owner') {
 
             <div class="form-group">
               <label>Harga Beli</label>
-              <input type="number" name="harga_beli" min="0" placeholder="Boleh dikosongkan (default 0)">
+              <input type="number" name="harga_beli" min="0" placeholder="Boleh dikosongkan (default 0)" inputmode="decimal">
             </div>
 
             <div class="form-group">
               <label>Harga Jual</label>
-              <input type="number" name="harga_jual" min="0" placeholder="Boleh dikosongkan (default 0)">
+              <input type="number" name="harga_jual" min="0" placeholder="Boleh dikosongkan (default 0)" inputmode="decimal">
             </div>
 
             <div class="form-group">
               <label>Stok Awal <span style="color:red">*</span></label>
-              <input type="number" name="stok" min="0" placeholder="0" required>
+              <input type="number" name="stok" min="0" placeholder="0" required inputmode="numeric">
             </div>
 
             <div class="form-group">
               <label>Stok Minimum</label>
-              <input type="number" name="stok_min" min="0" value="10">
+              <input type="number" name="stok_min" min="0" value="10" inputmode="numeric">
             </div>
 
             <div class="form-group">
               <label>Stok Maksimum</label>
-              <input type="number" name="stok_max" min="0" value="9999">
+              <input type="number" name="stok_max" min="0" value="9999" inputmode="numeric">
             </div>
 
             <div class="form-actions">

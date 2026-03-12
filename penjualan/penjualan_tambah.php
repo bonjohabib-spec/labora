@@ -183,7 +183,7 @@ $detail = $stmtDetail->get_result();
             </div>
             <div class="payment-row" id="row_bayar">
               <label id="label_bayar">Nominal Bayar (Rp)</label>
-              <input type="text" id="bayar_display" class="input-bayar" placeholder="0" onfocus="this.select()">
+              <input type="text" id="bayar_display" class="form-control" placeholder="Rp 0" required inputmode="decimal" onfocus="this.select()">
             </div>
             <div class="payment-row" id="row_kembali">
               <label id="label_kembali">Kembalian</label>
@@ -231,9 +231,12 @@ function confirmSelesai() {
   const bayar = parseFloat(bayarValue) || 0;
   
   if (metode === 'tunai' && bayar < total) {
-      return confirm('Uang bayar kurang dari total. Lanjutkan sebagai transaksi Tunai? (Sisa akan masuk Piutang)');
+      if (!confirm('Uang bayar kurang dari total. Lanjutkan sebagai transaksi Tunai? (Sisa akan masuk Piutang)')) {
+          return false;
+      }
   }
 
+  // Set values to hidden inputs BEFORE final confirmation
   document.getElementById('hidden_pelanggan').value = document.getElementById('pelanggan').value;
   document.getElementById('hidden_metode').value = metode;
   document.getElementById('hidden_bayar').value = bayar;

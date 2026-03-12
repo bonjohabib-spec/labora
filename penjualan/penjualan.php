@@ -244,6 +244,7 @@ $totalReceived30 = $dataSum['cash_30'] ?? 0;
                 <th>No. Invoice</th>
                 <th>Tanggal</th>
                 <th>Pelanggan</th>
+                <th>Kasir</th>
                 <th>Metode</th>
                 <th>Sisa Tagihan</th>
                 <th>Total</th>
@@ -253,13 +254,14 @@ $totalReceived30 = $dataSum['cash_30'] ?? 0;
             </thead>
             <tbody>
               <?php if ($q_riwayat->num_rows == 0): ?>
-                <tr><td colspan="7" style="text-align:center; padding:30px; color:#9ca3af;">Belum ada riwayat transaksi.</td></tr>
+                <tr><td colspan="9" style="text-align:center; padding:30px; color:#9ca3af;">Belum ada riwayat transaksi.</td></tr>
               <?php else: ?>
                 <?php while($p = $q_riwayat->fetch_assoc()): ?>
                 <tr class="history-row">
                   <td><a href="penjualan_detail.php?id=<?= $p['id_penjualan'] ?>" style="color:#3b82f6; font-weight:600;">#INV-<?= $p['id_penjualan'] ?></a></td>
                   <td><?= date('d/m/Y', strtotime($p['tanggal'])) ?></td>
                   <td class="customer-col"><?= htmlspecialchars($p['pelanggan'] ?: '-') ?></td>
+                  <td style="font-weight: 500; color: #64748b;"><?= htmlspecialchars($p['kasir']) ?></td>
                   <td>
                     <?php 
                     $metodes = explode(',', $p['daftar_metode'] ?? 'tunai');

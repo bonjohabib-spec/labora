@@ -26,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buka_shift'])) {
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Buka Kasir - LABORA</title>
   <link rel="stylesheet" href="../assets/css/global.css?v=<?= time() ?>">
   <style>
@@ -37,6 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buka_shift'])) {
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.08);
       text-align: center;
+    }
+    @media (max-width: 768px) {
+        .login-box { 
+            width: 95%; 
+            margin: 20px auto; 
+            padding: 20px; 
+            box-shadow: none;
+            border: 1px solid #e2e8f0;
+        }
     }
     .login-box h1 { font-size: 22px; margin-bottom: 10px; color: #1e293b; }
     .login-box p { color: #64748b; font-size: 14px; margin-bottom: 30px; }
@@ -60,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buka_shift'])) {
     <form method="POST">
       <div class="form-group">
         <label>Saldo Awal (Modal Tunai)</label>
-        <input type="text" id="saldo_awal_display" placeholder="Contoh: 50.000" required autofocus onfocus="this.select()">
+        <input type="text" id="saldo_awal_display" placeholder="Contoh: 50.000" required autofocus onfocus="this.select()" inputmode="decimal">
         <input type="hidden" name="saldo_awal" id="saldo_awal_real">
       </div>
       <button type="submit" name="buka_shift" class="btn-block">🚀 Mulai Shift Sekarang</button>

@@ -99,6 +99,7 @@ button {
   }
 
   .main-content {
+    margin-left: 0 !important;
     padding: 15px;
     overflow-y: visible;
   }

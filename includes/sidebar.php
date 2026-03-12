@@ -6,8 +6,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
 <div class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <div class="logo">
-      <i class="fas fa-box-open logo-icon"></i>
+    <div class="logo-brand">
+      <div class="logo-circle">
+        <i class="fas fa-star"></i>
+      </div>
       <span class="logo-text">LABORA</span>
     </div>
     <button id="toggle-sidebar" class="toggle-btn">
@@ -39,6 +41,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       </a>
     </li>
 
+    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'owner'): ?>
+    <li class="<?= $currentPage == 'laporan.php' ? 'active' : '' ?>">
+      <a href="<?= $base_url ?>/laporan/laporan.php">
+        <i class="fas fa-chart-line"></i>
+        <span class="link-text">Laporan</span>
+      </a>
+    </li>
+    <?php endif; ?>
+
     <li class="<?= $currentPage == 'tutup_kasir.php' ? 'active' : '' ?>">
       <a href="<?= $base_url ?>/dashboard/tutup_kasir.php">
         <i class="fas fa-flag-checkered"></i>
@@ -47,18 +58,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </li>
 
     <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] == 'owner'): ?>
-    <li class="<?= $currentPage == 'pengeluaran.php' ? 'active' : '' ?>">
-      <a href="<?= $base_url ?>/pengeluaran/pengeluaran.php">
-        <i class="fas fa-wallet"></i>
-        <span class="link-text">Pengeluaran</span>
-      </a>
-    </li>
-    <li class="<?= $currentPage == 'laporan.php' ? 'active' : '' ?>">
-      <a href="<?= $base_url ?>/laporan/laporan.php">
-        <i class="fas fa-chart-line"></i>
-        <span class="link-text">Laporan</span>
-      </a>
-    </li>
     <li class="<?= $currentPage == 'pengaturan.php' ? 'active' : '' ?>">
       <a href="<?= $base_url ?>/pengaturan/pengaturan.php">
         <i class="fas fa-cog"></i>

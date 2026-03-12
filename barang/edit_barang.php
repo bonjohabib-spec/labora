@@ -138,27 +138,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div class="form-group">
                             <label>Harga Beli (Modal)</label>
-                            <input type="number" name="harga_beli" value="<?= $data['harga_beli'] ?>" <?= $sudahDijual ? 'readonly' : '' ?>>
+                            <input type="number" name="harga_beli" value="<?= $data['harga_beli'] ?>" <?= $sudahDijual ? 'readonly' : '' ?> inputmode="decimal">
                         </div>
 
                         <div class="form-group">
                             <label>Harga Jual</label>
-                            <input type="number" name="harga_jual" value="<?= $data['harga_jual'] ?>" required>
+                            <input type="number" name="harga_jual" value="<?= $data['harga_jual'] ?>" required inputmode="decimal">
                         </div>
 
                         <div class="form-group">
                             <label>Stok Saat Ini</label>
-                            <input type="number" name="stok" value="<?= $data['stok'] ?>" <?= $sudahDijual ? 'readonly' : 'required' ?>>
+                            <input type="number" name="stok" value="<?= $data['stok'] ?>" <?= $sudahDijual ? 'readonly' : 'required' ?> inputmode="numeric">
                         </div>
 
                         <div class="form-group">
                             <label>Stok Minimum</label>
-                            <input type="number" name="stok_min" value="<?= $data['stok_min'] ?>">
+                            <input type="number" name="stok_min" value="<?= $data['stok_min'] ?>" inputmode="numeric">
                         </div>
 
                         <div class="form-group">
                             <label>Stok Maksimum</label>
-                            <input type="number" name="stok_max" value="<?= $data['stok_max'] ?>">
+                            <input type="number" name="stok_max" value="<?= $data['stok_max'] ?>" inputmode="numeric">
                         </div>
                     </div>
 

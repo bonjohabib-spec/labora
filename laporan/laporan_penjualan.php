@@ -119,11 +119,11 @@ $res_items = mysqli_query($conn, $query_top_items);
 // 4. Perincian Kas Masuk (Untuk Modal)
 // A. Kas dari Penjualan Baru (Cash/DP)
 $stmtKasPenjualan = $conn->prepare("
-    SELECT id_penjualan, tanggal, pelanggan, (total - sisa_piutang) as cash_dp 
+    SELECT id_penjualan, tanggal, pelanggan, (bayar - kembali) as cash_dp 
     FROM penjualan 
     WHERE status='selesai' 
     AND DATE(tanggal) BETWEEN ? AND ? 
-    AND (total - sisa_piutang) > 0" . $where_kasir);
+    AND (bayar - kembali) > 0" . $where_kasir);
 $stmtKasPenjualan->bind_param("ss", $tanggal_awal, $tanggal_akhir);
 $stmtKasPenjualan->execute();
 $res_kas_penjualan = $stmtKasPenjualan->get_result();

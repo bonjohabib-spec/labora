@@ -8,17 +8,25 @@ if (!$id_penjualan) {
     exit;
 }
 
-$q = $conn->query("SELECT * FROM penjualan WHERE id_penjualan=$id_penjualan");
-$p = $q->fetch_assoc();
+// Ambil data penjualan dengan prepared statement
+$stmt = $conn->prepare("SELECT * FROM penjualan WHERE id_penjualan = ?");
+$stmt->bind_param("i", $id_penjualan);
+$stmt->execute();
+$p = $stmt->get_result()->fetch_assoc();
+
+if (!$p) {
+    header("Location: penjualan.php");
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transaksi Berhasil - LABORA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/penjualan_finish.css?v=<?= time() ?>">
-</head>
 </head>
 <body>
     <div class="finish-container">

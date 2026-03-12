@@ -40,47 +40,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - LABORA</title>
-    <link rel="stylesheet" href="../assets/css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/index.css?v=<?= time() ?>">
 </head>
 <body>
-    <div class="container" id="container">
-        <!-- SIGN UP -->
-        <div class="form-container sign-up-container">
-            <form method="POST">
-                <h1>Sign Up</h1>
-                <input type="text" name="username" placeholder="Username" required>
-                <input type="password" name="password" placeholder="Password" required>
-                <button type="submit" name="register">Sign Up</button>
-            </form>
-        </div>
+    <div class="container">
+        <!-- LEFT SECTION: FORM -->
+        <div class="form-section">
+            <div class="login-header">
+                <img src="../assets/img/logo-labora.png" alt="LABORA Logo" class="brand-logo">
+            </div>
+            <div class="form-wrapper">
+                <h2>Log In to Your Shift</h2>
+                <p class="subtitle">Welcome back! Please enter your details to continue.</p>
 
-        <!-- SIGN IN -->
-        <div class="form-container sign-in-container">
-            <form method="POST">
-                <h1>Sign In</h1>
                 <?php if($error): ?>
-                    <div class="error"><?= $error ?></div>
+                    <div class="error-box"><?= $error ?></div>
                 <?php endif; ?>
-                <input type="text" name="username" placeholder="Username" required>
-                <input type="password" name="password" placeholder="Password" required>
-                <button type="submit" name="login">Sign In</button>
-            </form>
+
+                <form method="POST">
+                    <div class="input-field">
+                        <label>Username</label>
+                        <div class="input-icon-wrapper">
+                            <i class="fa-regular fa-user"></i>
+                            <input type="text" name="username" placeholder="Enter your username" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="input-field">
+                        <div class="label-row">
+                            <label>Password</label>
+                            <a href="#" class="forgot-link">Forgot Password?</a>
+                        </div>
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" name="password" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember" name="remember">
+                        <label for="remember">Remember Me</label>
+                    </div>
+
+                    <button type="submit" name="login" class="btn-signin">Sign In</button>
+                </form>
+            </div>
         </div>
 
-        <!-- Overlay -->
-        <div class="overlay-container">
-            <div class="overlay">
-                <div class="overlay-panel overlay-left">
-                    <h1>Welcome Back!</h1>
-                    <p>Silakan login dengan info akun Anda</p>
-                    <button class="ghost" id="signIn">Sign In</button>
+        <!-- RIGHT SECTION: DECORATIVE -->
+        <div class="side-panel">
+            <div class="side-content">
+                <div class="box-icon-wrapper">
+                    <i class="fa-solid fa-box-open"></i>
                 </div>
-                <div class="overlay-panel overlay-right">
-                    <h1>Hello, Friend!</h1>
-                    <p>Masukkan detail Anda untuk memulai</p>
-                    <button class="ghost" id="signUp">Sign Up</button>
-                </div>
+                <h1>Hello, Friend!</h1>
+                <h3>Start your shift with LABORA</h3>
+                <p>Simplify operations, manage inventory, and deliver exceptional service.</p>
             </div>
         </div>
     </div>

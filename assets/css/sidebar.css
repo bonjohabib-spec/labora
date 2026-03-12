@@ -167,8 +167,63 @@
 /* 📱 Responsive Adjustments */
 @media (max-width: 768px) {
   .sidebar {
-    width: 0;
-    left: -100%;
+    width: 100% !important;
+    height: auto !important;
+    position: sticky !important;
+    top: 0;
+    left: 0 !important;
+    flex-direction: row !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+    border-right: none !important;
+    border-bottom: 1px solid #f1f5f9 !important;
   }
-  /* On mobile we might want a different toggle logic, for now let's focus on desktop collapsible */
+
+  .sidebar-header {
+    display: none !important;
+  }
+
+  .nav-menu {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    padding: 5px !important;
+    gap: 5px !important;
+    scrollbar-width: none !important;
+    flex: 1 !important;
+  }
+
+  .nav-menu::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .nav-menu li {
+    margin-bottom: 0 !important;
+  }
+
+  .nav-menu li a {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    gap: 5px !important;
+  }
+
+  .nav-menu li.active a::before {
+     display: none !important;
+  }
+
+  .sidebar-footer {
+    border-top: none !important;
+    border-left: 1px solid #f1f5f9 !important;
+    padding: 5px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .sidebar-footer a {
+    padding: 8px !important;
+  }
+
+  .sidebar-footer .link-text, 
+  .nav-menu .link-text {
+    display: none !important;
+  }
 }

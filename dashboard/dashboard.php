@@ -26,50 +26,70 @@ $today = date('Y-m-d');
 $yesterday = date('Y-m-d', strtotime('-1 day'));
 
 // 1. Data Hari Ini
-$qOmzet = mysqli_query($conn, "SELECT SUM(total) AS omzet FROM penjualan WHERE DATE(tanggal)='$today' AND status='selesai'");
-$omzet = mysqli_fetch_assoc($qOmzet)['omzet'] ?? 0;
+$stmt1 = $conn->prepare("SELECT SUM(total) AS omzet FROM penjualan WHERE DATE(tanggal)=? AND status='selesai'");
+$stmt1->bind_param("s", $today);
+$stmt1->execute();
+$omzet = $stmt1->get_result()->fetch_assoc()['omzet'] ?? 0;
 
-$qKeuntungan = mysqli_query($conn, "SELECT SUM(keuntungan) AS untung FROM penjualan WHERE DATE(tanggal)='$today' AND status='selesai'");
-$keuntungan = mysqli_fetch_assoc($qKeuntungan)['untung'] ?? 0;
+$stmt2 = $conn->prepare("SELECT SUM(keuntungan) AS untung FROM penjualan WHERE DATE(tanggal)=? AND status='selesai'");
+$stmt2->bind_param("s", $today);
+$stmt2->execute();
+$keuntungan = $stmt2->get_result()->fetch_assoc()['untung'] ?? 0;
 
-$qTransaksi = mysqli_query($conn, "SELECT COUNT(*) AS trx FROM penjualan WHERE DATE(tanggal)='$today' AND status='selesai'");
-$transaksi = mysqli_fetch_assoc($qTransaksi)['trx'] ?? 0;
+$stmt3 = $conn->prepare("SELECT COUNT(*) AS trx FROM penjualan WHERE DATE(tanggal)=? AND status='selesai'");
+$stmt3->bind_param("s", $today);
+$stmt3->execute();
+$transaksi = $stmt3->get_result()->fetch_assoc()['trx'] ?? 0;
 
 // 2. Data Kemarin (Untuk Perbandingan)
-$qOmzetYest = mysqli_query($conn, "SELECT SUM(total) AS omzet FROM penjualan WHERE DATE(tanggal)='$yesterday' AND status='selesai'");
-$omzetYest = mysqli_fetch_assoc($qOmzetYest)['omzet'] ?? 0;
+$stmt4 = $conn->prepare("SELECT SUM(total) AS omzet FROM penjualan WHERE DATE(tanggal)=? AND status='selesai'");
+$stmt4->bind_param("s", $yesterday);
+$stmt4->execute();
+$omzetYest = $stmt4->get_result()->fetch_assoc()['omzet'] ?? 0;
 
-$qKeuntunganYest = mysqli_query($conn, "SELECT SUM(keuntungan) AS untung FROM penjualan WHERE DATE(tanggal)='$yesterday' AND status='selesai'");
-$keuntunganYest = mysqli_fetch_assoc($qKeuntunganYest)['untung'] ?? 0;
+$stmt5 = $conn->prepare("SELECT SUM(keuntungan) AS untung FROM penjualan WHERE DATE(tanggal)=? AND status='selesai'");
+$stmt5->bind_param("s", $yesterday);
+$stmt5->execute();
+$keuntunganYest = $stmt5->get_result()->fetch_assoc()['untung'] ?? 0;
 
 // Hitung Persentase Pertumbuhan
 function getGrowth($current, $past) {
-    if ($past <= 0) return $current > 0 ? 100 : 0;
+    if ($past <= 0) return $past == 0 && $current > 0 ? 100 : 0;
     return (($current - $past) / $past) * 100;
 }
 
-$growthOmzet = getGrowth($omzet, $omzetYest);
-$growthUntung = getGrowth($keuntungan, $keuntunganYest);
+$growthOmzet = getGrowth((float)$omzet, (float)$omzetYest);
+$growthUntung = getGrowth((float)$keuntungan, (float)$keuntunganYest);
 
 // 3. Leaderboard 7 Hari Terakhir
-$qBarang = mysqli_query($conn, "
+$stmt6 = $conn->prepare("
     SELECT b.nama_barang, v.warna, v.ukuran, SUM(dp.qty) AS terjual
     FROM detail_penjualan dp
     JOIN barang_varian v ON dp.id_varian = v.id_varian
     JOIN barang b ON v.id_barang = b.id_barang
     JOIN penjualan p ON dp.id_penjualan = p.id_penjualan
-    WHERE p.status='selesai' AND DATE(p.tanggal) BETWEEN DATE_SUB('$today', INTERVAL 7 DAY) AND '$today'
+    WHERE p.status='selesai' AND DATE(p.tanggal) BETWEEN DATE_SUB(?, INTERVAL 7 DAY) AND ?
     GROUP BY v.id_varian
     ORDER BY terjual DESC
     LIMIT 5
 ");
+$stmt6->bind_param("ss", $today, $today);
+$stmt6->execute();
+$resBarang = $stmt6->get_result();
 
 // 4. Pengeluaran Terbaru
-$qPengeluaran = mysqli_query($conn, "SELECT * FROM pengeluaran ORDER BY tanggal DESC LIMIT 5");
+$stmt7 = $conn->prepare("SELECT * FROM pengeluaran ORDER BY tanggal DESC LIMIT 5");
+$stmt7->execute();
+$resPengeluaran = $stmt7->get_result();
 
 // 5. Notifikasi Stok
-$qHabis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran FROM barang_varian v JOIN barang b ON v.id_barang = b.id_barang WHERE v.stok <= 0 AND v.status='aktif'");
-$qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok FROM barang_varian v JOIN barang b ON v.id_barang = b.id_barang WHERE v.stok > 0 AND v.stok <= b.stok_min AND v.status='aktif'");
+$stmt8 = $conn->prepare("SELECT b.nama_barang, v.warna, v.ukuran FROM barang_varian v JOIN barang b ON v.id_barang = b.id_barang WHERE v.stok <= 0 AND v.status='aktif'");
+$stmt8->execute();
+$resHabis = $stmt8->get_result();
+
+$stmt9 = $conn->prepare("SELECT b.nama_barang, v.warna, v.ukuran, v.stok FROM barang_varian v JOIN barang b ON v.id_barang = b.id_barang WHERE v.stok > 0 AND v.stok <= b.stok_min AND v.status='aktif'");
+$stmt9->execute();
+$resMenipis = $stmt9->get_result();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -115,13 +135,6 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
           <div class="btn-text">
             <strong>Tambah Stok</strong>
             <small>Input barang masuk</small>
-          </div>
-        </a>
-        <a href="../dashboard/tutup_kasir.php" class="action-btn danger-light">
-          <span class="btn-icon">🏁</span>
-          <div class="btn-text">
-            <strong>Tutup Kasir</strong>
-            <small>Akhiri shift & hitung uang</small>
           </div>
         </a>
         <a href="../pengeluaran/tambah_pengeluaran.php" class="action-btn warning">
@@ -182,7 +195,7 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
                 </tr>
               </thead>
               <tbody>
-                <?php $rank = 1; while ($b = mysqli_fetch_assoc($qBarang)): ?>
+                <?php $rank = 1; while ($b = $resBarang->fetch_assoc()): ?>
                   <tr>
                     <td class="txt-center"><span class="rank-badge rank-<?= $rank ?>"><?= $rank++ ?></span></td>
                     <td>
@@ -206,9 +219,9 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
             <!-- PENGELUARAN TERAKHIR -->
              <div class="recent-expenses">
                <label>💸 Biaya Terakhir</label>
-               <?php if (mysqli_num_rows($qPengeluaran) > 0): ?>
+               <?php if ($resPengeluaran->num_rows > 0): ?>
                 <div class="expense-list">
-                  <?php while ($xp = mysqli_fetch_assoc($qPengeluaran)): ?>
+                  <?php while ($xp = $resPengeluaran->fetch_assoc()): ?>
                     <div class="expense-item">
                       <div>
                         <div class="product-name"><?= htmlspecialchars($xp['deskripsi']) ?></div>
@@ -228,8 +241,8 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
               <div class="notif-box-content">
                 <strong>Stok Habis (Sangat Penting)</strong>
                 <ul>
-                  <?php if (mysqli_num_rows($qHabis) > 0): ?>
-                    <?php while ($h = mysqli_fetch_assoc($qHabis)): ?>
+                  <?php if ($resHabis->num_rows > 0): ?>
+                    <?php while ($h = $resHabis->fetch_assoc()): ?>
                       <li><?= htmlspecialchars($h['nama_barang']) ?> (<?= htmlspecialchars($h['warna']) ?>-<?= htmlspecialchars($h['ukuran']) ?>)</li>
                     <?php endwhile; ?>
                   <?php else: ?>
@@ -244,8 +257,8 @@ $qMenipis = mysqli_query($conn, "SELECT b.nama_barang, v.warna, v.ukuran, v.stok
               <div class="notif-box-content">
                 <strong>Stok Menipis</strong>
                 <ul>
-                  <?php if (mysqli_num_rows($qMenipis) > 0): ?>
-                    <?php while ($m = mysqli_fetch_assoc($qMenipis)): ?>
+                  <?php if ($resMenipis->num_rows > 0): ?>
+                    <?php while ($m = $resMenipis->fetch_assoc()): ?>
                       <li><?= htmlspecialchars($m['nama_barang']) ?> (<?= $m['warna'] ?>-<?= $m['ukuran'] ?>) - Sisa <strong><?= $m['stok'] ?></strong></li>
                     <?php endwhile; ?>
                   <?php else: ?>

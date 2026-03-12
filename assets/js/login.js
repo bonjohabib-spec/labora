@@ -1,11 +1,2 @@
-const signUpButton = document.getElementById('signUp');
-const signInButton = document.getElementById('signIn');
-const container = document.getElementById('container');
-
-signUpButton.addEventListener('click', () => {
-    container.classList.add("right-panel-active");
-});
-
-signInButton.addEventListener('click', () => {
-    container.classList.remove("right-panel-active");
-});
+// File ini dikosongkan karena struktur login baru menggunakan layout statis yang lebih ringan and cepat.
+// Tidak ada lagi animasi slide yang membutuhkan Javascript tambahan.

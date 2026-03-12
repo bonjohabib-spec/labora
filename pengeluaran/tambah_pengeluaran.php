@@ -55,7 +55,7 @@ if (!isset($_SESSION['user_role'])) {
 
         <div class="form-group">
           <label>Nominal (Rp)</label>
-          <input type="number" name="nominal" id="nominalInput" placeholder="Contoh: 50000" required>
+          <input type="number" name="nominal" id="nominalInput" placeholder="Contoh: 50000" required inputmode="decimal">
           <span class="rupiah-preview" id="rupiahPreview">Rp 0</span>
         </div>
 

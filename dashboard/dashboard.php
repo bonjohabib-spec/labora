@@ -4,8 +4,18 @@ include __DIR__ . '/../includes/koneksi.php';
 include __DIR__ . '/../includes/auth_shift.php';
 
 // Cek login dan role
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'owner') {
-    header("Location: ../auth/index.php");
+if (!isset($_SESSION['user_role'])) {
+    header("Location: ../auth/login.php");
+    exit();
+}
+
+if ($_SESSION['user_role'] === 'kasir') {
+    header("Location: ../penjualan/penjualan.php");
+    exit();
+}
+
+if ($_SESSION['user_role'] !== 'owner') {
+    header("Location: ../auth/login.php");
     exit();
 }
 

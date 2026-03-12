@@ -4,7 +4,7 @@ include __DIR__ . '/../includes/koneksi.php';
 
 // Cek login dan role - disamakan dengan dashboard
 if (!isset($_SESSION['user_role'])) {
-    header("Location: ../auth/index.php");
+    header("Location: ../auth/login.php");
     exit();
 }
 

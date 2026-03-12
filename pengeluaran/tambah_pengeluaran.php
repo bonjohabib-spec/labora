@@ -3,7 +3,7 @@ if (session_status() == PHP_SESSION_NONE) session_start();
 include __DIR__ . '/../includes/koneksi.php';
 
 if (!isset($_SESSION['user_role'])) {
-    header("Location: ../auth/index.php");
+    header("Location: ../auth/login.php");
     exit();
 }
 ?>

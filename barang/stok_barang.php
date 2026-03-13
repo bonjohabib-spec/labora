@@ -252,6 +252,10 @@ $result = $stmt->get_result();
                           </a>
                         <?php endif; ?>
                         
+                        <a href='restock_barang.php?id=<?= $row['id_varian'] ?>' class='btn-action restock'>
+                           <span class='icon'>➕</span> Restock
+                        </a>
+
                         <a href='edit_barang.php?id=<?= $row['id_varian'] ?>' class='btn-action edit'>
                            <span class='icon'>✏️</span> Edit
                         </a>

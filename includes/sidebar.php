@@ -1,10 +1,14 @@
 <?php
-include __DIR__ . '/config.php'; // ✅ tambahin ini di paling atas
+include __DIR__ . '/config.php';
 $currentPage = basename($_SERVER['PHP_SELF']);
-?><!-- Font Awesome 6 -->
+
+// ✅ Ambil status sidebar dari Cookie agar instan (Anti-Flicker)
+$is_collapsed = isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] === 'true';
+?>
+<!-- Font Awesome 6 -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-<div class="sidebar" id="sidebar">
+<div class="sidebar <?= $is_collapsed ? 'collapsed' : '' ?>" id="sidebar">
   <div class="sidebar-header">
     <div class="logo-brand">
       <div class="logo-circle">
@@ -81,7 +85,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleBtn = document.getElementById('toggle-sidebar');
   const mainContent = document.querySelector('.main-content');
 
-  // Function to apply sidebar state
+  // Logic to set Cookie
+  const setSidebarCookie = (val) => {
+    const d = new Date();
+    d.setTime(d.getTime() + (30*24*60*60*1000)); // 30 hari
+    document.cookie = "sidebar_collapsed=" + val + ";expires=" + d.toUTCString() + ";path=/";
+  };
+
   const applySidebarState = (isCollapsed) => {
     if (isCollapsed) {
       sidebar.classList.add('collapsed');
@@ -92,17 +102,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // 1. Initial Load from localStorage
-  const storedState = localStorage.getItem('sidebar-collapsed') === 'true';
-  applySidebarState(storedState);
+  // ✅ Sinkronisasi awal main-content via JS (PHP sudah handle sidebar element)
+  const isCollapsedInitial = sidebar.classList.contains('collapsed');
+  if (isCollapsedInitial && mainContent) {
+    mainContent.classList.add('sidebar-collapsed');
+  }
 
-  // 2. Toggle Click Event
   toggleBtn.addEventListener('click', () => {
-    const currentState = sidebar.classList.contains('collapsed');
-    const newState = !currentState;
-    
-    applySidebarState(newState);
-    localStorage.setItem('sidebar-collapsed', newState);
+    const isNowCollapsed = !sidebar.classList.contains('collapsed');
+    applySidebarState(isNowCollapsed);
+    setSidebarCookie(isNowCollapsed);
   });
 });
 </script>

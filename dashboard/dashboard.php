@@ -133,8 +133,8 @@ $resMenipis = $stmt9->get_result();
         <a href="../barang/tambah_barang.php" class="action-btn secondary">
           <span class="btn-icon">📦</span>
           <div class="btn-text">
-            <strong>Tambah Stok</strong>
-            <small>Input barang masuk</small>
+            <strong>Tambah SKU</strong>
+            <small>Input nama barang</small>
           </div>
         </a>
         <a href="../pengeluaran/tambah_pengeluaran.php" class="action-btn warning">

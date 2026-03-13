@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute();
     $data = $stmt->get_result()->fetch_assoc();
 
-    if ($data && $data['password'] === $password) {
+    if ($data && password_verify($password, $data['password'])) {
         $_SESSION['username'] = $data['username'];
         $_SESSION['user_role'] = $data['role'];
         

@@ -42,8 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new_pass = $_POST['new_password'];
         if (!empty($new_pass)) {
             $user = $_SESSION['username'];
+            $hashed_pass = password_hash($new_pass, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("UPDATE users SET password = ? WHERE username = ?");
-            $stmt->bind_param("ss", $new_pass, $user);
+            $stmt->bind_param("ss", $hashed_pass, $user);
             if ($stmt->execute()) {
                 $success = "Password berhasil diperbarui!";
             } else {
@@ -66,8 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($check->get_result()->num_rows > 0) {
             $error = "Username sudah terdaftar!";
         } else {
+            $hashed_pass_new = password_hash($pass_new, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
-            $stmt->bind_param("sss", $user_new, $pass_new, $role_new);
+            $stmt->bind_param("sss", $user_new, $hashed_pass_new, $role_new);
             if ($stmt->execute()) {
                 $success = "User baru berhasil ditambahkan!";
             } else {
